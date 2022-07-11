@@ -10,4 +10,5 @@ print("View: ", yt.views)
 
 yd = yt.streams.get_highest_resolution()
 
-yd.download('/Users/tuomaskivioja/Desktop/Downloaded Video/Youtube Downloads')
+# ADD FOLDER HERE
+yd.download('./YTfolder')
