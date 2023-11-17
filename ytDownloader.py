@@ -10,7 +10,7 @@ try:
     audioorvideo = input("Do you want only audio( y or n ): ")
     if videotype == "y":
         directory = input("Enter Playlist folder name : ")
-        parent_dir = "D:\Videos\Playlist"
+        parent_dir = "D:/Videos/Playlist"
 
         path = os.path.join(parent_dir, directory) 
         try:
@@ -33,10 +33,10 @@ try:
         print("Downloading:", yt.title)
         if audioorvideo == "y":
             # Get the highest resolution stream
-            yd = yt.streams.filter(only_audio=True).first().download('D:\Music')
+            yd = yt.streams.filter(only_audio=True).first().download('D:/Music')
         else:   
             # Get the highest resolution stream
-            yd = yt.streams.get_highest_resolution().download('D:\Videos')
+            yd = yt.streams.get_highest_resolution().download('D:/Videos')
 
     print("Download complete.")
 except Exception as e:
