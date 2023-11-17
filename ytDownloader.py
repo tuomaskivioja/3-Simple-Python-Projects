@@ -7,6 +7,7 @@ try:
     url = input("Enter the youtube URL download : ")
     # Ask the user to input if URL is playlist or not
     videotype = input("Is video you want download is playlist( y or n ): ")
+    audioorvideo = input("Do you want only audio( y or n ): ")
     if videotype == "y":
         directory = input("Enter Playlist folder name : ")
         parent_dir = "D:\Videos\Playlist"
@@ -20,17 +21,23 @@ try:
         yt = Playlist(url)
 
         print("Downloading:", yt.title)
-        for video in yt.videos:
-            video.streams.get_highest_resolution().download(path)
+        if audioorvideo == "y":
+            for video in yt.videos:
+                video.streams.gfilter(only_audio=True).first().download(path)
+        else:
+            for video in yt.videos:
+                video.streams.get_highest_resolution().download(path)           
     else:
         yt = YouTube(url)
 
         print("Downloading:", yt.title)
-        # Get the highest resolution stream
-        yd = yt.streams.get_highest_resolution()
-        # Download the video to the current directory
-        yd.download('D:\Videos')
-    
+        if audioorvideo == "y":
+            # Get the highest resolution stream
+            yd = yt.streams.filter(only_audio=True).first().download('D:\Music')
+        else:   
+            # Get the highest resolution stream
+            yd = yt.streams.get_highest_resolution().download('D:\Videos')
+
     print("Download complete.")
 except Exception as e:
     print("An error occurred:", str(e))
