@@ -4,9 +4,9 @@ import os
 
 try:
     # Ask the user to input the YouTube URL
-    url = input("Enter the youtube URL download : ")
+    url = input("Enter the youtube URL to download : ")
     # Ask the user to input if URL is playlist or not
-    videotype = input("Is video you want download is playlist( y or n ): ")
+    videotype = input("Is it a playlist( y or n ): ")
     audioorvideo = input("Do you want only audio( y or n ): ")
     if videotype == "y":
         directory = input("Enter Playlist folder name : ")
