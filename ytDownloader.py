@@ -16,7 +16,7 @@ try:
         path = os.path.join(parent_dir, directory) 
         try:
             os.mkdir(path)  
-            print("Directory '% s' created" % directory) 
+            print("Playlist folder '% s' created" % directory) 
         except OSError as error: 
             print(error)
         yt = Playlist(url)
@@ -24,7 +24,7 @@ try:
         print("Downloading:", yt.title)
         if audioorvideo == "y":
             for video in tqdm(yt.videos):
-                video.streams.gfilter(only_audio=True).first().download(path) # Downloader for audio
+                video.streams.filter(only_audio=True).first().download(path) # Downloader for audio
         else:
             for video in tqdm(yt.videos):
                 video.streams.get_highest_resolution().download(path) # Downloader for video
