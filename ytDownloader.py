@@ -1,5 +1,6 @@
 from pytube import YouTube
 from pytube import Playlist
+from tqdm import tqdm
 import os 
 
 try:
@@ -22,21 +23,21 @@ try:
 
         print("Downloading:", yt.title)
         if audioorvideo == "y":
-            for video in yt.videos:
-                video.streams.gfilter(only_audio=True).first().download(path)
+            for video in tqdm(yt.videos):
+                video.streams.gfilter(only_audio=True).first().download(path) # Downloader for audio
         else:
-            for video in yt.videos:
-                video.streams.get_highest_resolution().download(path)           
+            for video in tqdm(yt.videos):
+                video.streams.get_highest_resolution().download(path) # Downloader for video
     else:
         yt = YouTube(url)
 
         print("Downloading:", yt.title)
         if audioorvideo == "y":
             # Get the highest resolution stream
-            yd = yt.streams.filter(only_audio=True).first().download('D:/Music')
+            yd = yt.streams.filter(only_audio=True).first().download('D:/Music') # Downloader for audio
         else:   
             # Get the highest resolution stream
-            yd = yt.streams.get_highest_resolution().download('D:/Videos')
+            yd = yt.streams.get_highest_resolution().download('D:/Videos') # Downloader for video
 
     print("Download complete.")
 except Exception as e:
