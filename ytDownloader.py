@@ -3,6 +3,7 @@ from pytube import Playlist
 from tqdm import tqdm
 import pywhatkit as kit
 from youtubesearchpython import VideosSearch
+from tkinter import *
 import os 
 
 try:
@@ -20,9 +21,11 @@ try:
         url = input("Enter the youtube URL to download : ")    
 
     # Ask the user to input if URL is playlist or not
-    videotype = input("Is it a playlist( y or n ): ")
+    #videotype = input("Is it a playlist( y or n ): ")
+
     audioorvideo = input("Do you want only audio( y or n ): ")
-    if videotype == "y":
+    #if videotype == "y":
+    if "playlist?list" in url:
         directory = input("Enter Playlist folder name : ")
         parent_dir = "D:/Videos/Playlist"
 
