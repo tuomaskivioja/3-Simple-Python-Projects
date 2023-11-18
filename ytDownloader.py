@@ -1,11 +1,24 @@
 from pytube import YouTube
 from pytube import Playlist
 from tqdm import tqdm
+import pywhatkit as kit
+from youtubesearchpython import VideosSearch
 import os 
 
 try:
-    # Ask the user to input the YouTube URL
-    url = input("Enter the youtube URL to download : ")
+    checkifurl = input("Do you have url ( y or n ) : ")
+    if checkifurl == "y":
+        # Ask the user to input the YouTube URL
+        url = input("Enter the youtube URL to download : ")
+    else:
+        # Ask the user to input the YouTube video
+        ytsearchres = input("What do you want to search : ")
+        kit.playonyt(ytsearchres)
+        #search = VideosSearch(ytsearchres,limit = 5)
+        #print(search.result()['result'])
+        # Ask the user to input the YouTube URL
+        url = input("Enter the youtube URL to download : ")    
+
     # Ask the user to input if URL is playlist or not
     videotype = input("Is it a playlist( y or n ): ")
     audioorvideo = input("Do you want only audio( y or n ): ")
