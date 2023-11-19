@@ -1,37 +1,47 @@
 from pytube import YouTube, Playlist
 import os
-import sys
-
-def progress_function(stream, chunk, bytes_remaining):
-    total_size = stream.filesize
-    bytes_downloaded = total_size - bytes_remaining 
-    percentage_of_completion = bytes_downloaded / total_size * 100
-    sys.stdout.write(f"\rDownloading: {percentage_of_completion:.2f}%")
-    sys.stdout.flush()
+from tqdm import tqdm
 
 def download_video(yt, path):
-    yt.register_on_progress_callback(progress_function)
     stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
+    
+    # Define the tqdm progress bar
+    tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
+
+    def progress_function(stream, chunk, bytes_remaining):
+        current = stream.filesize - bytes_remaining
+        tqdm_instance.update(current - tqdm_instance.n)  # update tqdm instance with downloaded bytes
+
+    yt.register_on_progress_callback(progress_function)
     stream.download(output_path=path)
+    tqdm_instance.close()
     print(f"\nDownloaded {yt.title} to {path}")
 
 def download_audio(yt, path):
-    yt.register_on_progress_callback(progress_function)
     stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+
+    tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc=yt.title, ascii=True)
+
+    def progress_function(stream, chunk, bytes_remaining):
+        current = stream.filesize - bytes_remaining
+        tqdm_instance.update(current - tqdm_instance.n)  # update tqdm instance with downloaded bytes
+
+    yt.register_on_progress_callback(progress_function)
     stream.download(output_path=path, filename=f"{yt.title}.mp3")
-    print(f"\nDownloaded audio of {yt.title} to {path}")
+    tqdm_instance.close()
+    print(f"\nDownloaded {yt.title} to {path}")
 
 def download_playlist(url, path):
     pl = Playlist(url)
-    total_videos = len(pl.video_urls)
-    print(f"Total videos in the playlist: {total_videos}")
+    # Playlist details 
+    print(f"\nPlaylist details: ")
+    print(f"Playlist name: {pl.title}")
+    print(f"Total videos in the playlist: {len(pl.video_urls)}")
 
-    downloaded_videos = 0
-    for video_url in pl.video_urls:
+    for index, video_url in enumerate(pl.video_urls, start=1):
         yt = YouTube(video_url)
+        print(f"\nDownloading video {index} of {len(pl.video_urls)}: {yt.title}")
         download_video(yt, path)
-        downloaded_videos += 1
-        print(f"Downloaded {downloaded_videos}/{total_videos} videos from playlist")
 
 def main():
     url = input("Enter the YouTube URL: ")
@@ -39,7 +49,7 @@ def main():
     is_playlist = 'playlist' in url
 
     if is_playlist:
-        playlist_path = input("Enter the folder name for the playlist: ")
+        playlist_path = input("\nEnter the folder name for the playlist: ")
         path = os.path.join("D:/Videos/Playlists", playlist_path)
         os.makedirs(path, exist_ok=True)
         download_playlist(url, path)
