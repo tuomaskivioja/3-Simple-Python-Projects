@@ -20,7 +20,7 @@ def download_video(yt, path):
 def download_audio(yt, path):
     stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
 
-    tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc=yt.title, ascii=True)
+    tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
 
     def progress_function(stream, chunk, bytes_remaining):
         current = stream.filesize - bytes_remaining
