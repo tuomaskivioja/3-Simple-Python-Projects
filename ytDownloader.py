@@ -16,7 +16,7 @@ def update_playlist_progress(completed, total):
 def download_video(url, path, audio_only=False):
     yt = YouTube(url)
     yt.register_on_progress_callback(progress_function)
-    stream = yt.streams.filter(only_audio=audio_only).first()
+    stream = yt.streams.filter(only_audio=audio_only).get_highest_resolution()
     print(f"Downloading: {yt.title}")
     stream.download(output_path=path)
     print(f"\nDownload complete: {yt.title}")
