@@ -2,6 +2,38 @@ from pytube import YouTube, Playlist, exceptions
 import os
 import subprocess
 from tqdm import tqdm
+import datetime
+
+def log_download_details(url, status, log_dir, error_msg=None):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    log_message = f"[{timestamp}] URL: {url}, Status: {status}"
+
+    if error_msg:
+        log_message += f", Error: {error_msg}"
+
+    try:
+        # Create directory if it does not exist
+        os.makedirs(log_dir, exist_ok=True)
+    except OSError as e:
+        print(f"Error creating log directory: {e}")
+        return  # Exit the function if directory creation fails
+
+    log_file_path = os.path.join(log_dir, "download_history.log")
+    with open(log_file_path, "a") as log_file:
+        log_file.write(log_message + "\n")
+
+# Function to handle batch download of videos or audios
+def batch_download(urls, path, download_choice, log_dir):
+    for url in urls:
+        try:
+            yt = YouTube(url)
+            if download_choice == 'v':
+                download_highest_quality_video(yt, path, log_dir)
+            elif download_choice == 'a':
+                download_audio(yt, path, log_dir)
+        except Exception as e:
+            log_download_details(url, "Failed", log_dir, str(e))
+            print(f"Failed to download {url}. Error: {e}")
 
 # Function to remove invalid characters from filenames
 def sanitize_filename(title):
@@ -35,8 +67,10 @@ def correct_file_extension(file_path, desired_extension):
     return file_path
 
 # Function to download the highest quality video from a YouTube link
-def download_highest_quality_video(yt, path):
+def download_highest_quality_video(yt, path, log_dir):
     try:
+        # Log the start of download
+        log_download_details(yt.watch_url, "Started", log_dir)
         # Separate streams for video and audio
         video_stream = yt.streams.filter(progressive=False, file_extension='mp4').order_by('resolution').desc().first()
         audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
@@ -61,11 +95,15 @@ def download_highest_quality_video(yt, path):
         # Correct file extension if necessary and check file integrity
         final_path = correct_file_extension(os.path.join(path, sanitize_filename(yt.title) + '.mp4'), "mp4")
         check_file_integrity(final_path)
+        # Log successful download
+        log_download_details(yt.watch_url, "Success", log_dir)
     except exceptions.PytubeError as e:
         print(f"An error occurred while downloading the video. Please check your network connection and try again. Details: {e}")
     except subprocess.CalledProcessError as e:
         print(f"Error in processing video/audio: {e}")
     except Exception as e:
+        # Log failed download
+        log_download_details(yt.watch_url, "Failed", log_dir, str(e))
         print(f"Unexpected error: {e}")
 
 # Helper function to download with a progress bar
@@ -86,8 +124,10 @@ def merge_files(video_path, audio_path, output_path):
     subprocess.run([ffmpeg_path, '-i', video_path, '-i', audio_path, '-c', 'copy', output_path])
 
 # Function to download only audio from a YouTube link
-def download_audio(yt, path):
+def download_audio(yt, path, log_dir):
     try:
+        # Log the start of download
+        log_download_details(yt.watch_url, "Started", log_dir)
         # Select the best audio stream
         stream = yt.streams.filter(only_audio=True, file_extension='mp3').order_by('abr').desc().first()
 
@@ -155,15 +195,19 @@ def download_audio(yt, path):
 
         # Check file integrity
         check_file_integrity(file_path)
+        # Log successful download
+        log_download_details(yt.watch_url, "Success", log_dir)
     except exceptions.PytubeError as e:
         print(f"An error occurred while downloading audio. Please check your network connection and try again. Details: {e}")
     except subprocess.CalledProcessError as e:
         print(f"Error in processing audio: {e}")
     except Exception as e:
+        # Log failed download
+        log_download_details(yt.watch_url, "Failed", log_dir, str(e))
         print(f"Unexpected error: {e}")
 
 # Function to download a complete YouTube playlist
-def download_playlist(url, path, download_choice):
+def download_playlist(url, path, download_choice, log_dir):
     try:
         pl = Playlist(url)
         print(f"\nPlaylist details: ")
@@ -175,9 +219,9 @@ def download_playlist(url, path, download_choice):
             yt = YouTube(video_url)
             print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
             if download_choice == 'v':
-                download_highest_quality_video(yt, path)
+                download_highest_quality_video(yt, path, log_dir)
             elif download_choice == 'a':
-                download_audio(yt, path)
+                download_audio(yt, path, log_dir)
     except exceptions.PytubeError as e:
         print(f"An error occurred while downloading the playlist. Please check your network connection and try again. Details: {e}")
     except Exception as e:
@@ -186,31 +230,51 @@ def download_playlist(url, path, download_choice):
 # Main function to handle user input and start the download process
 def main():
     try:
-        url = input("Please enter the full YouTube URL (video or playlist): ")
+        log_dir = "D:\\logs"
+        download_mode = input("Enter 'S' for single video or 'B' for batch download: ").lower()
         download_choice = input("Would you like to download Video or Audio? Please enter 'V' for Video or 'A' for Audio: ").lower()
-        is_playlist = 'playlist' in url
+        if download_mode == 'b':
+            batch_mode = input("Enter 'U' to input URLs or 'F' to read from a file: ").lower()
+            if batch_mode == 'u':
+                urls = input("Enter video URLs separated by commas: ").split(',')
+            elif batch_mode == 'f':
+                file_path = input("Enter the file path containing video URLs: ")
+                with open(file_path, 'r') as file:
+                    urls = file.read().splitlines()
+            else:
+                raise ValueError("Invalid batch mode selected")
 
-        # Handling downloads for playlists and individual videos or audio
-        if is_playlist:
-            playlist_path = input("\nEnter the folder name for the playlist: ")
-            path = os.path.join("D:/Videos/Playlists", playlist_path)
+            path = input("Enter the download directory: ")
             os.makedirs(path, exist_ok=True)
-            download_playlist(url, path, download_choice)  # Pass download_choice here
+            batch_download(urls, path, download_choice, log_dir)
         else:
-            yt = YouTube(url)
-            if download_choice == 'v':
-                video_path = 'D:/Videos' 
-                os.makedirs(video_path, exist_ok=True)
-                download_highest_quality_video(yt, video_path)
-            elif download_choice == 'a':
-                audio_path = 'D:/Music'
-                os.makedirs(audio_path, exist_ok=True)
-                download_audio(yt, audio_path)
+            url = input("Please enter the full YouTube URL (video or playlist): ")
+            is_playlist = 'playlist' in url
+            print(f"Default log file directory is '{log_dir}'.")
+
+            # Handling downloads for playlists and individual videos or audio
+            if is_playlist:
+                playlist_path = input("\nEnter the folder name for the playlist: ")
+                path = os.path.join("D:/Videos/Playlists", playlist_path)
+                os.makedirs(path, exist_ok=True)
+                download_playlist(url, path, download_choice, log_dir)  # Pass download_choice here
+            else:
+                yt = YouTube(url)
+                if download_choice == 'v':
+                    video_path = 'D:/Videos' 
+                    os.makedirs(video_path, exist_ok=True)
+                    download_highest_quality_video(yt, video_path, log_dir)
+                elif download_choice == 'a':
+                    audio_path = 'D:/Music'
+                    os.makedirs(audio_path, exist_ok=True)
+                    download_audio(yt, audio_path, log_dir)
     except ValueError as e:
         print(f"Invalid input: {e}")
     except Exception as e:
+        log_download_details(url, "Failed", log_dir, str(e))
         print(f"Unexpected error in main: {e}")
     except KeyboardInterrupt:
+        log_download_details(url, "Interrupted", "User stopped the program")
         print("\nProgram stopped by the user. Exiting now...")  
 
 if __name__ == "__main__":

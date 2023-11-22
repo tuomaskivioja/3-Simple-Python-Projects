@@ -7,9 +7,6 @@ Similar to video quality, let users choose the quality/bitrate of the audio they
 Download Subtitles/Closed Captions:
 Add functionality to download subtitles or closed captions if they are available for a video.
 
-Batch Downloading:
-Implement a feature to download multiple videos at once by accepting a list of URLs or a file containing URLs.
-
 Download Thumbnails:
 Add an option to download the thumbnail image of the video.
 
