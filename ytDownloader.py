@@ -233,7 +233,7 @@ def main():
     try:
         url = None  # Initialize url to None
         log_dir = "D:\\logs"
-        download_mode = input("Enter 'S' for single video or 'B' for batch download: ").lower()
+        download_mode = input("Enter 'S' for single download or 'B' for batch download: ").lower()
         download_choice = input("Would you like to download Video or Audio? Please enter 'V' for Video or 'A' for Audio: ").lower()
         if download_mode == 'b':
             batch_mode = input("Enter 'U' to input URLs or 'F' to read from a file: ").lower()
