@@ -1,4 +1,4 @@
-from pytube import YouTube, Playlist
+from pytube import YouTube, Playlist, exceptions
 import os
 import subprocess
 from tqdm import tqdm
@@ -36,30 +36,37 @@ def correct_file_extension(file_path, desired_extension):
 
 # Function to download the highest quality video from a YouTube link
 def download_highest_quality_video(yt, path):
-    # Separate streams for video and audio
-    video_stream = yt.streams.filter(progressive=False, file_extension='mp4').order_by('resolution').desc().first()
-    audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+    try:
+        # Separate streams for video and audio
+        video_stream = yt.streams.filter(progressive=False, file_extension='mp4').order_by('resolution').desc().first()
+        audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
 
-    # Paths for video and audio files
-    video_path = os.path.join(path, sanitize_filename(yt.title) + '_video.mp4')
-    audio_path = os.path.join(path, sanitize_filename(yt.title) + '_audio.mp4')
+        # Paths for video and audio files
+        video_path = os.path.join(path, sanitize_filename(yt.title) + '_video.mp4')
+        audio_path = os.path.join(path, sanitize_filename(yt.title) + '_audio.mp4')
 
-    # Download video with progress bar
-    download_with_progress(video_stream, video_path, yt)
+        # Download video with progress bar
+        download_with_progress(video_stream, video_path, yt)
 
-    # Download audio with progress bar
-    download_with_progress(audio_stream, audio_path, yt)
+        # Download audio with progress bar
+        download_with_progress(audio_stream, audio_path, yt)
 
-    # Merge video and audio files
-    merge_files(video_path, audio_path, os.path.join(path, sanitize_filename(yt.title) + '.mp4'))
+        # Merge video and audio files
+        merge_files(video_path, audio_path, os.path.join(path, sanitize_filename(yt.title) + '.mp4'))
 
-    # Delete the separate video and audio files
-    os.remove(video_path)
-    os.remove(audio_path)
+        # Delete the separate video and audio files
+        os.remove(video_path)
+        os.remove(audio_path)
 
-    # Correct file extension if necessary and check file integrity
-    final_path = correct_file_extension(os.path.join(path, sanitize_filename(yt.title) + '.mp4'), "mp4")
-    check_file_integrity(final_path)
+        # Correct file extension if necessary and check file integrity
+        final_path = correct_file_extension(os.path.join(path, sanitize_filename(yt.title) + '.mp4'), "mp4")
+        check_file_integrity(final_path)
+    except exceptions.PytubeError as e:
+        print(f"Error downloading video: {e}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error in processing video/audio: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 # Helper function to download with a progress bar
 def download_with_progress(stream, file_path, yt):
@@ -80,112 +87,131 @@ def merge_files(video_path, audio_path, output_path):
 
 # Function to download only audio from a YouTube link
 def download_audio(yt, path):
-    # Select the best audio stream
-    stream = yt.streams.filter(only_audio=True, file_extension='mp3').order_by('abr').desc().first()
+    try:
+        # Select the best audio stream
+        stream = yt.streams.filter(only_audio=True, file_extension='mp3').order_by('abr').desc().first()
 
-    # Sanitize and set up file path
-    sanitized_title = sanitize_filename(yt.title)
-    final_filename = f"{sanitized_title}.mp3"
-    file_path = os.path.join(path, final_filename)
+        # Sanitize and set up file path
+        sanitized_title = sanitize_filename(yt.title)
+        final_filename = f"{sanitized_title}.mp3"
+        file_path = os.path.join(path, final_filename)
 
-    # Check if file already exists
-    if os.path.exists(file_path):
-        user_input = input(f"The file {final_filename} already exists. Do you want to skip it? (Y/N): ").lower()
-        if user_input == 'y':
-            print(f"Skipping {final_filename}...")
-            return
-        else:
-            # Append a number to the filename to avoid conflict
-            counter = 1
-            new_filename = f"{sanitized_title} ({counter}).mp3"
-            new_file_path = os.path.join(path, new_filename)
-            while os.path.exists(new_file_path):
-                counter += 1
+        # Check if file already exists
+        if os.path.exists(file_path):
+            user_input = input(f"The file {final_filename} already exists. Do you want to skip it? (Y/N): ").lower()
+            if user_input == 'y':
+                print(f"Skipping {final_filename}...")
+                return
+            else:
+                # Append a number to the filename to avoid conflict
+                counter = 1
                 new_filename = f"{sanitized_title} ({counter}).mp3"
                 new_file_path = os.path.join(path, new_filename)
+                while os.path.exists(new_file_path):
+                    counter += 1
+                    new_filename = f"{sanitized_title} ({counter}).mp3"
+                    new_file_path = os.path.join(path, new_filename)
             
-            final_filename = new_filename
-            file_path = new_file_path
-            print(f"Redownloading as {final_filename}...")
+                final_filename = new_filename
+                file_path = new_file_path
+                print(f"Redownloading as {final_filename}...")
 
-    if not stream:
-        print("MP3 format not available. Downloading in best available audio format and converting to MP3.")
-        # Select the best audio stream regardless of format
-        stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
-        temp_filename = f"{sanitized_title}.{stream.mime_type.split('/')[1]}"
-        temp_file_path = os.path.join(path, temp_filename)
+        if not stream:
+            print("MP3 format not available. Downloading in best available audio format and converting to MP3.")
+            # Select the best audio stream regardless of format
+            stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+            temp_filename = f"{sanitized_title}.{stream.mime_type.split('/')[1]}"
+            temp_file_path = os.path.join(path, temp_filename)
 
-        tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
+            tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
 
-        def progress_function(stream, chunk, bytes_remaining):
-            current = stream.filesize - bytes_remaining
-            tqdm_instance.update(current - tqdm_instance.n)
+            def progress_function(stream, chunk, bytes_remaining):
+                current = stream.filesize - bytes_remaining
+                tqdm_instance.update(current - tqdm_instance.n)
 
-        yt.register_on_progress_callback(progress_function)
-        stream.download(output_path=path, filename=temp_filename)
-        tqdm_instance.close()
+            yt.register_on_progress_callback(progress_function)
+            stream.download(output_path=path, filename=temp_filename)
+            tqdm_instance.close()
 
-        # Convert to MP3
-        ffmpeg_path = 'C:\\ffmpeg\\bin\\ffmpeg.exe'
-        subprocess.run([ffmpeg_path, '-i', temp_file_path, file_path])
-        os.remove(temp_file_path)
-        print(f"\nConverted to MP3 and saved as {final_filename} in {path}")
-    else:
-        tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
+            # Convert to MP3
+            ffmpeg_path = 'C:\\ffmpeg\\bin\\ffmpeg.exe'
+            subprocess.run([ffmpeg_path, '-i', temp_file_path, file_path])
+            os.remove(temp_file_path)
+            print(f"\nConverted to MP3 and saved as {final_filename} in {path}")
+        else:
+            tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
 
-        def progress_function(stream, chunk, bytes_remaining):
-            current = stream.filesize - bytes_remaining
-            tqdm_instance.update(current - tqdm_instance.n)
+            def progress_function(stream, chunk, bytes_remaining):
+                current = stream.filesize - bytes_remaining
+                tqdm_instance.update(current - tqdm_instance.n)
 
-        yt.register_on_progress_callback(progress_function)
-        stream.download(output_path=path, filename=final_filename)
-        tqdm_instance.close()
-        print(f"\nDownloaded {final_filename} to {path}")
+            yt.register_on_progress_callback(progress_function)
+            stream.download(output_path=path, filename=final_filename)
+            tqdm_instance.close()
+            print(f"\nDownloaded {final_filename} to {path}")
 
-    # Correct file extension if necessary
-    file_path = correct_file_extension(file_path, "mp3")
+        # Correct file extension if necessary
+        file_path = correct_file_extension(file_path, "mp3")
 
-    # Check file integrity
-    check_file_integrity(file_path)
+        # Check file integrity
+        check_file_integrity(file_path)
+    except exceptions.PytubeError as e:
+        print(f"Error downloading audio: {e}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error in processing audio: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
 # Function to download a complete YouTube playlist
 def download_playlist(url, path, download_choice):
-    pl = Playlist(url)
-    print(f"\nPlaylist details: ")
-    print(f"Playlist name: {pl.title}")
-    print(f"Total videos in the playlist: {len(pl.video_urls)}")
+    try:
+        pl = Playlist(url)
+        print(f"\nPlaylist details: ")
+        print(f"Playlist name: {pl.title}")
+        print(f"Total videos in the playlist: {len(pl.video_urls)}")
 
-    # Loop through each video in the playlist and download based on user choice
-    for index, video_url in enumerate(pl.video_urls, start=1):
-        yt = YouTube(video_url)
-        print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
-        if download_choice == 'v':
-            download_highest_quality_video(yt, path)
-        elif download_choice == 'a':
-            download_audio(yt, path)
+        # Loop through each video in the playlist and download based on user choice
+        for index, video_url in enumerate(pl.video_urls, start=1):
+            yt = YouTube(video_url)
+            print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
+            if download_choice == 'v':
+                download_highest_quality_video(yt, path)
+            elif download_choice == 'a':
+                download_audio(yt, path)
+    except exceptions.PytubeError as e:
+        print(f"Error downloading playlist: {e}")
+    except Exception as e:
+        print(f"Unexpected error in playlist download: {e}")
 
 # Main function to handle user input and start the download process
 def main():
-    url = input("Enter the YouTube URL: ")
-    download_choice = input("Download Video or Audio (V/A): ").lower()
-    is_playlist = 'playlist' in url
+    try:
+        url = input("Enter the YouTube URL: ")
+        download_choice = input("Download Video or Audio (V/A): ").lower()
+        is_playlist = 'playlist' in url
 
-    # Handling downloads for playlists and individual videos or audio
-    if is_playlist:
-        playlist_path = input("\nEnter the folder name for the playlist: ")
-        path = os.path.join("D:/Videos/Playlists", playlist_path)
-        os.makedirs(path, exist_ok=True)
-        download_playlist(url, path, download_choice)  # Pass download_choice here
-    else:
-        yt = YouTube(url)
-        if download_choice == 'v':
-            video_path = 'D:/Videos' 
-            os.makedirs(video_path, exist_ok=True)
-            download_highest_quality_video(yt, video_path)
-        elif download_choice == 'a':
-            audio_path = 'D:/Music'
-            os.makedirs(audio_path, exist_ok=True)
-            download_audio(yt, audio_path)
+        # Handling downloads for playlists and individual videos or audio
+        if is_playlist:
+            playlist_path = input("\nEnter the folder name for the playlist: ")
+            path = os.path.join("D:/Videos/Playlists", playlist_path)
+            os.makedirs(path, exist_ok=True)
+            download_playlist(url, path, download_choice)  # Pass download_choice here
+        else:
+            yt = YouTube(url)
+            if download_choice == 'v':
+                video_path = 'D:/Videos' 
+                os.makedirs(video_path, exist_ok=True)
+                download_highest_quality_video(yt, video_path)
+            elif download_choice == 'a':
+                audio_path = 'D:/Music'
+                os.makedirs(audio_path, exist_ok=True)
+                download_audio(yt, audio_path)
+    except ValueError as e:
+        print(f"Invalid input: {e}")
+    except Exception as e:
+        print(f"Unexpected error in main: {e}")
+    except KeyboardInterrupt:
+        print("\nProgram interrupted by the user. Exiting.")    
 
 if __name__ == "__main__":
     main()
