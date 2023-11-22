@@ -230,6 +230,7 @@ def download_playlist(url, path, download_choice, log_dir):
 # Main function to handle user input and start the download process
 def main():
     try:
+        url = None  # Initialize url to None
         log_dir = "D:\\logs"
         download_mode = input("Enter 'S' for single video or 'B' for batch download: ").lower()
         download_choice = input("Would you like to download Video or Audio? Please enter 'V' for Video or 'A' for Audio: ").lower()
@@ -271,11 +272,14 @@ def main():
     except ValueError as e:
         print(f"Invalid input: {e}")
     except Exception as e:
-        log_download_details(url, "Failed", log_dir, str(e))
+        if url:
+            log_download_details(url, "Failed", log_dir, str(e))
         print(f"Unexpected error in main: {e}")
     except KeyboardInterrupt:
-        log_download_details(url, "Interrupted", "User stopped the program")
-        print("\nProgram stopped by the user. Exiting now...")  
+        if url:
+            log_download_details(url, "Interrupted", log_dir, "User stopped the program")
+        else:
+            print("\nProgram stopped by the user before URL was provided. Exiting now...")
 
 if __name__ == "__main__":
     main()
