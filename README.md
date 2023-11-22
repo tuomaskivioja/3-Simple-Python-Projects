@@ -18,11 +18,10 @@ Before running the script, ensure you have the following installed:
 - FFmpeg (for file integrity checks and audio processing)
 
 ## Installation
-
-1. Clone the repository:
+### Clone the repository:
    ```bash
    git clone https://github.com/tejasholla/3-Simple-Python-Projects.git
-
+   ```
 ## Install required Python packages:
    ```bash
    pip install pytube tqdm
