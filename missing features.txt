@@ -22,9 +22,6 @@ Add functionality to resume interrupted downloads, which can be particularly use
 Convert Downloaded Videos:
 Implement a feature to convert downloaded videos to different formats (like .avi, .mov, etc.).
 
-Download History Log:
-Maintain a log of all downloads, including URLs, timestamps, and statuses (success, failed, interrupted).
-
 User Configuration File:
 Allow users to set up a configuration file where they can preset their preferred download settings.
 
