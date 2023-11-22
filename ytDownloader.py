@@ -31,28 +31,45 @@ def correct_file_extension(file_path, desired_extension):
         return new_file_path
     return file_path
 
-def download_video(yt, path):
-    stream = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc().first()
-    tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
+def download_highest_quality_video(yt, path):
+    video_stream = yt.streams.filter(progressive=False, file_extension='mp4').order_by('resolution').desc().first()
+    audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+
+    video_path = os.path.join(path, sanitize_filename(yt.title) + '_video.mp4')
+    audio_path = os.path.join(path, sanitize_filename(yt.title) + '_audio.mp4')
+
+    # Download video with progress bar
+    download_with_progress(video_stream, video_path, yt)
+
+    # Download audio with progress bar
+    download_with_progress(audio_stream, audio_path, yt)
+
+    # Merge video and audio
+    merge_files(video_path, audio_path, os.path.join(path, sanitize_filename(yt.title) + '.mp4'))
+
+    # Delete the separate video and audio files
+    os.remove(video_path)
+    os.remove(audio_path)
+
+    # Correct file extension if necessary and check file integrity
+    final_path = correct_file_extension(os.path.join(path, sanitize_filename(yt.title) + '.mp4'), "mp4")
+    check_file_integrity(final_path)
+
+def download_with_progress(stream, file_path, yt):
+    tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc=f'Downloading {os.path.basename(file_path)}', ascii=True)
 
     def progress_function(stream, chunk, bytes_remaining):
         current = stream.filesize - bytes_remaining
         tqdm_instance.update(current - tqdm_instance.n)
 
     yt.register_on_progress_callback(progress_function)
-
-    sanitized_title = sanitize_filename(yt.title)
-    file_path = os.path.join(path, sanitized_title)
-    stream.download(output_path=path, filename=sanitized_title)
+    stream.download(filename=file_path)
     tqdm_instance.close()
-    print(f"\nDownloaded {sanitized_title} to {path}")
 
-    # Correct file extension if necessary
-    file_path = correct_file_extension(file_path, "mp4")
+def merge_files(video_path, audio_path, output_path):
+    ffmpeg_path = 'C:\\ffmpeg\\bin\\ffmpeg.exe'
+    subprocess.run([ffmpeg_path, '-i', video_path, '-i', audio_path, '-c', 'copy', output_path])
 
-    # Check file integrity
-    check_file_integrity(file_path)
-    
 def download_audio(yt, path):
     stream = yt.streams.filter(only_audio=True, file_extension='mp3').order_by('abr').desc().first()
 
@@ -130,7 +147,7 @@ def download_playlist(url, path, download_choice):
         yt = YouTube(video_url)
         print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
         if download_choice == 'v':
-            download_video(yt, path)
+            download_highest_quality_video(yt, path)
         elif download_choice == 'a':
             download_audio(yt, path)
 
@@ -149,7 +166,7 @@ def main():
         if download_choice == 'v':
             video_path = 'D:/Videos' 
             os.makedirs(video_path, exist_ok=True)
-            download_video(yt, video_path)
+            download_highest_quality_video(yt, video_path)
         elif download_choice == 'a':
             audio_path = 'D:/Music'
             os.makedirs(audio_path, exist_ok=True)
