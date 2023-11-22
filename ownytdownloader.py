@@ -61,7 +61,6 @@ def download_audio(yt, path):
         tqdm_instance.close()
         print(f"\nDownloaded {sanitized_title} to {path}")
 
-
 def download_playlist(url, path):
     pl = Playlist(url)
     print(f"\nPlaylist details: ")
