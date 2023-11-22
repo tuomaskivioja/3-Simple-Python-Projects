@@ -22,6 +22,19 @@ def log_download_details(url, status, log_dir, error_msg=None):
     with open(log_file_path, "a") as log_file:
         log_file.write(log_message + "\n")
 
+# Function to handle batch download of videos or audios
+def batch_download(urls, path, download_choice, log_dir):
+    for url in urls:
+        try:
+            yt = YouTube(url)
+            if download_choice == 'v':
+                download_highest_quality_video(yt, path, log_dir)
+            elif download_choice == 'a':
+                download_audio(yt, path, log_dir)
+        except Exception as e:
+            log_download_details(url, "Failed", log_dir, str(e))
+            print(f"Failed to download {url}. Error: {e}")
+
 # Function to remove invalid characters from filenames
 def sanitize_filename(title):
     invalid_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
@@ -194,7 +207,7 @@ def download_audio(yt, path, log_dir):
         print(f"Unexpected error: {e}")
 
 # Function to download a complete YouTube playlist
-def download_playlist(url, path, download_choice):
+def download_playlist(url, path, download_choice, log_dir):
     try:
         pl = Playlist(url)
         print(f"\nPlaylist details: ")
@@ -206,9 +219,9 @@ def download_playlist(url, path, download_choice):
             yt = YouTube(video_url)
             print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
             if download_choice == 'v':
-                download_highest_quality_video(yt, path)
+                download_highest_quality_video(yt, path, log_dir)
             elif download_choice == 'a':
-                download_audio(yt, path)
+                download_audio(yt, path, log_dir)
     except exceptions.PytubeError as e:
         print(f"An error occurred while downloading the playlist. Please check your network connection and try again. Details: {e}")
     except Exception as e:
@@ -218,27 +231,43 @@ def download_playlist(url, path, download_choice):
 def main():
     try:
         log_dir = "D:\\logs"
-        url = input("Please enter the full YouTube URL (video or playlist): ")
+        download_mode = input("Enter 'S' for single video or 'B' for batch download: ").lower()
         download_choice = input("Would you like to download Video or Audio? Please enter 'V' for Video or 'A' for Audio: ").lower()
-        is_playlist = 'playlist' in url
-        print(f"Default log file directory is '{log_dir}'.")
+        if download_mode == 'b':
+            batch_mode = input("Enter 'U' to input URLs or 'F' to read from a file: ").lower()
+            if batch_mode == 'u':
+                urls = input("Enter video URLs separated by commas: ").split(',')
+            elif batch_mode == 'f':
+                file_path = input("Enter the file path containing video URLs: ")
+                with open(file_path, 'r') as file:
+                    urls = file.read().splitlines()
+            else:
+                raise ValueError("Invalid batch mode selected")
 
-        # Handling downloads for playlists and individual videos or audio
-        if is_playlist:
-            playlist_path = input("\nEnter the folder name for the playlist: ")
-            path = os.path.join("D:/Videos/Playlists", playlist_path)
+            path = input("Enter the download directory: ")
             os.makedirs(path, exist_ok=True)
-            download_playlist(url, path, download_choice)  # Pass download_choice here
+            batch_download(urls, path, download_choice, log_dir)
         else:
-            yt = YouTube(url)
-            if download_choice == 'v':
-                video_path = 'D:/Videos' 
-                os.makedirs(video_path, exist_ok=True)
-                download_highest_quality_video(yt, video_path, log_dir)
-            elif download_choice == 'a':
-                audio_path = 'D:/Music'
-                os.makedirs(audio_path, exist_ok=True)
-                download_audio(yt, audio_path, log_dir)
+            url = input("Please enter the full YouTube URL (video or playlist): ")
+            is_playlist = 'playlist' in url
+            print(f"Default log file directory is '{log_dir}'.")
+
+            # Handling downloads for playlists and individual videos or audio
+            if is_playlist:
+                playlist_path = input("\nEnter the folder name for the playlist: ")
+                path = os.path.join("D:/Videos/Playlists", playlist_path)
+                os.makedirs(path, exist_ok=True)
+                download_playlist(url, path, download_choice, log_dir)  # Pass download_choice here
+            else:
+                yt = YouTube(url)
+                if download_choice == 'v':
+                    video_path = 'D:/Videos' 
+                    os.makedirs(video_path, exist_ok=True)
+                    download_highest_quality_video(yt, video_path, log_dir)
+                elif download_choice == 'a':
+                    audio_path = 'D:/Music'
+                    os.makedirs(audio_path, exist_ok=True)
+                    download_audio(yt, audio_path, log_dir)
     except ValueError as e:
         print(f"Invalid input: {e}")
     except Exception as e:
