@@ -18,7 +18,13 @@ def download_video(yt, path):
     print(f"\nDownloaded {yt.title} to {path}")
 
 def download_audio(yt, path):
-    stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+    # Attempt to find an audio stream in mp3 format
+    stream = yt.streams.filter(only_audio=True, file_extension='mp3').order_by('abr').desc().first()
+
+    # If no mp3 stream is available, default to the best audio format available
+    if not stream:
+        print("MP3 format not available. Downloading in best available audio format.")
+        stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
 
     tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc='Downloading', ascii=True)
 
@@ -27,7 +33,7 @@ def download_audio(yt, path):
         tqdm_instance.update(current - tqdm_instance.n)  # update tqdm instance with downloaded bytes
 
     yt.register_on_progress_callback(progress_function)
-    stream.download(output_path=path, filename=f"{yt.title}.mp3")
+    stream.download(output_path=path, filename=f"{yt.title}.mp3")  # filename always set to .mp3 extension
     tqdm_instance.close()
     print(f"\nDownloaded {yt.title} to {path}")
 
