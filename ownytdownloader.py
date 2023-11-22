@@ -3,12 +3,14 @@ import os
 import subprocess
 from tqdm import tqdm
 
+# Function to remove invalid characters from filenames
 def sanitize_filename(title):
     invalid_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
     for char in invalid_chars:
         title = title.replace(char, '')
     return title
 
+# Function to check the integrity of a downloaded file using FFmpeg
 def check_file_integrity(file_path, ffmpeg_path='C:\\ffmpeg\\bin\\ffmpeg.exe'):
     try:
         print(f"\nChecking file integrity for {file_path}...")
@@ -23,6 +25,7 @@ def check_file_integrity(file_path, ffmpeg_path='C:\\ffmpeg\\bin\\ffmpeg.exe'):
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while checking {file_path}: {e.stderr}")
 
+# Function to ensure the correct file extension is present
 def correct_file_extension(file_path, desired_extension):
     if not os.path.splitext(file_path)[1]:  # No extension
         new_file_path = f"{file_path}.{desired_extension}"
@@ -31,10 +34,13 @@ def correct_file_extension(file_path, desired_extension):
         return new_file_path
     return file_path
 
+# Function to download the highest quality video from a YouTube link
 def download_highest_quality_video(yt, path):
+    # Separate streams for video and audio
     video_stream = yt.streams.filter(progressive=False, file_extension='mp4').order_by('resolution').desc().first()
     audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
 
+    # Paths for video and audio files
     video_path = os.path.join(path, sanitize_filename(yt.title) + '_video.mp4')
     audio_path = os.path.join(path, sanitize_filename(yt.title) + '_audio.mp4')
 
@@ -44,7 +50,7 @@ def download_highest_quality_video(yt, path):
     # Download audio with progress bar
     download_with_progress(audio_stream, audio_path, yt)
 
-    # Merge video and audio
+    # Merge video and audio files
     merge_files(video_path, audio_path, os.path.join(path, sanitize_filename(yt.title) + '.mp4'))
 
     # Delete the separate video and audio files
@@ -55,6 +61,7 @@ def download_highest_quality_video(yt, path):
     final_path = correct_file_extension(os.path.join(path, sanitize_filename(yt.title) + '.mp4'), "mp4")
     check_file_integrity(final_path)
 
+# Helper function to download with a progress bar
 def download_with_progress(stream, file_path, yt):
     tqdm_instance = tqdm(total=stream.filesize, unit='B', unit_scale=True, desc=f'Downloading {os.path.basename(file_path)}', ascii=True)
 
@@ -66,13 +73,17 @@ def download_with_progress(stream, file_path, yt):
     stream.download(filename=file_path)
     tqdm_instance.close()
 
+# Function to merge video and audio files using FFmpeg
 def merge_files(video_path, audio_path, output_path):
     ffmpeg_path = 'C:\\ffmpeg\\bin\\ffmpeg.exe'
     subprocess.run([ffmpeg_path, '-i', video_path, '-i', audio_path, '-c', 'copy', output_path])
 
+# Function to download only audio from a YouTube link
 def download_audio(yt, path):
+    # Select the best audio stream
     stream = yt.streams.filter(only_audio=True, file_extension='mp3').order_by('abr').desc().first()
 
+    # Sanitize and set up file path
     sanitized_title = sanitize_filename(yt.title)
     final_filename = f"{sanitized_title}.mp3"
     file_path = os.path.join(path, final_filename)
@@ -137,12 +148,14 @@ def download_audio(yt, path):
     # Check file integrity
     check_file_integrity(file_path)
 
+# Function to download a complete YouTube playlist
 def download_playlist(url, path, download_choice):
     pl = Playlist(url)
     print(f"\nPlaylist details: ")
     print(f"Playlist name: {pl.title}")
     print(f"Total videos in the playlist: {len(pl.video_urls)}")
 
+    # Loop through each video in the playlist and download based on user choice
     for index, video_url in enumerate(pl.video_urls, start=1):
         yt = YouTube(video_url)
         print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
@@ -151,11 +164,13 @@ def download_playlist(url, path, download_choice):
         elif download_choice == 'a':
             download_audio(yt, path)
 
+# Main function to handle user input and start the download process
 def main():
     url = input("Enter the YouTube URL: ")
     download_choice = input("Download Video or Audio (V/A): ").lower()
     is_playlist = 'playlist' in url
 
+    # Handling downloads for playlists and individual videos or audio
     if is_playlist:
         playlist_path = input("\nEnter the folder name for the playlist: ")
         path = os.path.join("D:/Videos/Playlists", playlist_path)
