@@ -62,7 +62,7 @@ def download_highest_quality_video(yt, path):
         final_path = correct_file_extension(os.path.join(path, sanitize_filename(yt.title) + '.mp4'), "mp4")
         check_file_integrity(final_path)
     except exceptions.PytubeError as e:
-        print(f"Error downloading video: {e}")
+        print(f"An error occurred while downloading the video. Please check your network connection and try again. Details: {e}")
     except subprocess.CalledProcessError as e:
         print(f"Error in processing video/audio: {e}")
     except Exception as e:
@@ -98,7 +98,7 @@ def download_audio(yt, path):
 
         # Check if file already exists
         if os.path.exists(file_path):
-            user_input = input(f"The file {final_filename} already exists. Do you want to skip it? (Y/N): ").lower()
+            user_input = input(f"{final_filename} already exists. Would you like to skip downloading this file? Enter 'Y' for Yes or 'N' for No: ").lower()
             if user_input == 'y':
                 print(f"Skipping {final_filename}...")
                 return
@@ -156,7 +156,7 @@ def download_audio(yt, path):
         # Check file integrity
         check_file_integrity(file_path)
     except exceptions.PytubeError as e:
-        print(f"Error downloading audio: {e}")
+        print(f"An error occurred while downloading audio. Please check your network connection and try again. Details: {e}")
     except subprocess.CalledProcessError as e:
         print(f"Error in processing audio: {e}")
     except Exception as e:
@@ -179,15 +179,15 @@ def download_playlist(url, path, download_choice):
             elif download_choice == 'a':
                 download_audio(yt, path)
     except exceptions.PytubeError as e:
-        print(f"Error downloading playlist: {e}")
+        print(f"An error occurred while downloading the playlist. Please check your network connection and try again. Details: {e}")
     except Exception as e:
         print(f"Unexpected error in playlist download: {e}")
 
 # Main function to handle user input and start the download process
 def main():
     try:
-        url = input("Enter the YouTube URL: ")
-        download_choice = input("Download Video or Audio (V/A): ").lower()
+        url = input("Please enter the full YouTube URL (video or playlist): ")
+        download_choice = input("Would you like to download Video or Audio? Please enter 'V' for Video or 'A' for Audio: ").lower()
         is_playlist = 'playlist' in url
 
         # Handling downloads for playlists and individual videos or audio
@@ -211,7 +211,7 @@ def main():
     except Exception as e:
         print(f"Unexpected error in main: {e}")
     except KeyboardInterrupt:
-        print("\nProgram interrupted by the user. Exiting.")    
+        print("\nProgram stopped by the user. Exiting now...")  
 
 if __name__ == "__main__":
     main()
