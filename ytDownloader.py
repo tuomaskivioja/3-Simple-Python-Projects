@@ -17,9 +17,9 @@ def check_file_integrity(file_path, ffmpeg_path='C:\\ffmpeg\\bin\\ffmpeg.exe'):
             check=True, text=True, stderr=subprocess.PIPE
         )
         if result.stderr:
-            print(f"\nFile {file_path} might be corrupted. Errors: {result.stderr}")
+            print(f"File {file_path} might be corrupted. Errors: {result.stderr}")
         else:
-            print(f"\nFile {file_path} is not corrupted.")
+            print(f"File {file_path} is not corrupted.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while checking {file_path}: {e.stderr}")
 
@@ -59,6 +59,26 @@ def download_audio(yt, path):
     sanitized_title = sanitize_filename(yt.title)
     final_filename = f"{sanitized_title}.mp3"
     file_path = os.path.join(path, final_filename)
+
+    # Check if file already exists
+    if os.path.exists(file_path):
+        user_input = input(f"The file {final_filename} already exists. Do you want to skip it? (Y/N): ").lower()
+        if user_input == 'y':
+            print(f"Skipping {final_filename}...")
+            return
+        else:
+            # Append a number to the filename to avoid conflict
+            counter = 1
+            new_filename = f"{sanitized_title} ({counter}).mp3"
+            new_file_path = os.path.join(path, new_filename)
+            while os.path.exists(new_file_path):
+                counter += 1
+                new_filename = f"{sanitized_title} ({counter}).mp3"
+                new_file_path = os.path.join(path, new_filename)
+            
+            final_filename = new_filename
+            file_path = new_file_path
+            print(f"Redownloading as {final_filename}...")
 
     if not stream:
         print("MP3 format not available. Downloading in best available audio format and converting to MP3.")
