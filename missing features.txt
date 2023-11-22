@@ -42,6 +42,3 @@ Provide an option to directly upload the downloaded files to cloud storage platf
 
 Proxy Support:
 Add support for downloading through proxies, which can be useful in regions where YouTube is restricted.
-
-Configurable File Naming Scheme:
-Allow users to customize how the downloaded files are named, using a template system.
