@@ -4,6 +4,7 @@ import subprocess
 from tqdm import tqdm
 import datetime
 
+# Function to log download details to a file
 def log_download_details(url, status, log_dir, error_msg=None):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_message = f"[{timestamp}] URL: {url}, Status: {status}"
