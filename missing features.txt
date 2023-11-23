@@ -10,9 +10,6 @@ Add functionality to download subtitles or closed captions if they are available
 Download Thumbnails:
 Add an option to download the thumbnail image of the video.
 
-Interactive Progress Bar:
-Enhance the progress bar to show more details, like estimated time remaining, download speed, etc.
-
 Resume Interrupted Downloads:
 Add functionality to resume interrupted downloads, which can be particularly useful for large files.
 
