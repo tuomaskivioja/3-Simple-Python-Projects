@@ -17,7 +17,6 @@ Welcome to our YouTube Downloader Script! This Python-based tool offers a versat
 1. **Clone the Repository**:
 
    ```
-   bashCopy code
    git clone https://github.com/tejasholla/YouTube-Downloader.git
    ```
 
