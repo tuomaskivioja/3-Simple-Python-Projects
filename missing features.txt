@@ -14,8 +14,6 @@ Integration with Cloud Storage Services: Directly upload the downloaded files to
 
 Download Speed Limiting: Allow users to set a download speed limit to avoid consuming all available bandwidth.
 
-Error Handling and Retry Mechanism: Enhance error handling to include more specific error messages and automatic retries for failed downloads.
-
 Download Scheduler: Implement a scheduler to set downloads to occur at a specific time, which can be useful for users with limited bandwidth during certain hours.
 
 Command-line Arguments for Advanced Users: For users who prefer command-line, add argument parsing to control the script without interactive inputs.
