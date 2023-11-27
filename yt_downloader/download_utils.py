@@ -8,6 +8,7 @@ from progress_utils import download_with_progress
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 from tqdm import tqdm
+import argparse
 
 # Constants for retry mechanism
 MAX_RETRIES = 3
@@ -247,3 +248,16 @@ def select_videos(playlist):
     selections = input("Enter your selections: ")
     selected_indices = [int(i) - 1 for i in selections.split(',') if i.isdigit()]
     return [playlist.video_urls[i] for i in selected_indices if i < len(playlist.video_urls)]
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="YouTube Video and Audio Downloader")
+    
+    parser.add_argument("-m", "--mode", choices=['single', 'batch'], help="Download mode: single or batch")
+    parser.add_argument("-t", "--type", choices=['video', 'audio'], help="Download type: video or audio")
+    parser.add_argument("-u", "--urls", nargs='+', help="List of URLs to download for batch mode")
+    parser.add_argument("-f", "--file", type=str, help="File path containing URLs for batch mode")
+    parser.add_argument("-d", "--directory", type=str, help="Download directory")
+    parser.add_argument("-p", "--playlist", action="store_true", help="Indicates the URL is a playlist")
+    parser.add_argument("-plc", "--playlist_choice", choices=['e', 's'], help="Download entire playlist or select specific videos (e/s)")
+
+    return parser.parse_args()
