@@ -16,8 +16,6 @@ Download Speed Limiting: Allow users to set a download speed limit to avoid cons
 
 Download Scheduler: Implement a scheduler to set downloads to occur at a specific time, which can be useful for users with limited bandwidth during certain hours.
 
-Command-line Arguments for Advanced Users: For users who prefer command-line, add argument parsing to control the script without interactive inputs.
-
 Proxy Server Support: Add support for downloading through proxy servers, useful in regions where YouTube might be restricted.
 
 Update Notification: Add a feature to notify users of updates to your script or to the dependencies like Pytube.
