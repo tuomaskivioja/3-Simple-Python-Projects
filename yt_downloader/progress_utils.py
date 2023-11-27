@@ -1,6 +1,6 @@
 from tqdm import tqdm
-import time
 import datetime
+import time
 import logging, os
 
 # Helper function to download with a progress bar

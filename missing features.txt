@@ -24,8 +24,6 @@ Update Notification: Add a feature to notify users of updates to your script or 
 
 Logging Enhancements: Improve the logging system to include more detailed information and possibly different levels of logging (e.g., debug, info, error).
 
-Playlist Customization: Offer options to download select videos from a playlist rather than the entire playlist.
-
 Integration with a Database: For heavy users, integrating with a database to keep track of downloaded videos and their details could be useful.
 
 Local Server for Remote Access: Implement a local server feature, allowing users to control the downloader remotely from a web interface within the same network.

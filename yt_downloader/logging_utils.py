@@ -13,7 +13,8 @@ def log_download_details(url, status, log_dir, error_msg=None):
     log_message = f"[{timestamp}] URL: {url}, Status: {status}"
 
     if error_msg:
-        log_message += f", Error: {error_msg}"
+        detailed_error_msg = f"Error details: {error_msg}"
+        log_message += f", {detailed_error_msg}"
     
     try:
         # Create directory if it does not exist
