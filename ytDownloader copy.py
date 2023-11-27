@@ -56,23 +56,6 @@ def get_default_directory(directory_type):
         else:
             return os.path.expanduser('~/logs')
 
-# Function to set custom user-agent
-def set_custom_user_agent():
-    default_user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36"
-
-    user_input = input("Would you like to set a custom user-agent? (Y/N): ").lower()
-    if user_input == 'y':
-        return input("Enter the custom user-agent: ")
-    else:
-        return default_user_agent
-    
-# Modify the YouTube object creation to include custom headers
-def create_youtube_object(url, user_agent):
-    headers = {
-        'User-Agent': user_agent
-    }
-    return YouTube(url, headers=headers)
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Logging function to record download details
@@ -99,15 +82,15 @@ def log_download_details(url, status, log_dir, error_msg=None):
         print(f"Error logging details: {e}")
 
 # Function to handle batch download of videos or audios
-def batch_download(urls, path, download_choice, log_dir, user_agent):
+def batch_download(urls, path, download_choice, log_dir):
     for url in urls:
         for attempt in range(MAX_RETRIES):
             try:
                 yt = YouTube(url)
                 if download_choice == 'v':
-                    download_highest_quality_video(yt, path, log_dir, user_agent)
+                    download_highest_quality_video(yt, path, log_dir)
                 elif download_choice == 'a':
-                    download_audio(yt, path, log_dir, user_agent)
+                    download_audio(yt, path, log_dir)
                 break
             except exceptions.PytubeError as e:
                 log_download_details(url, "Failed", log_dir, str(e))
@@ -154,7 +137,7 @@ def correct_file_extension(file_path, desired_extension):
     return file_path
 
 # Function to download the highest quality video from a YouTube link
-def download_highest_quality_video(yt, path, log_dir, user_agent):
+def download_highest_quality_video(yt, path, log_dir):
     for attempt in range(MAX_RETRIES):
         try:
             # Log the start of download
@@ -250,7 +233,7 @@ def merge_files(video_path, audio_path, output_path):
     subprocess.run([ffmpeg_path, '-i', video_path, '-i', audio_path, '-c', 'copy', output_path])
 
 # Function to download only audio from a YouTube link
-def download_audio(yt, path, log_dir, user_agent):
+def download_audio(yt, path, log_dir):
     for attempt in range(MAX_RETRIES):
         try:
             # Log the start of download
@@ -342,23 +325,31 @@ def download_audio(yt, path, log_dir, user_agent):
                 print("Maximum retries reached. Failed to download audio.")
 
 # Function to download a complete YouTube playlist with retries
-def download_playlist(url, path, download_choice, log_dir, user_agent):
+def download_playlist(url, path, download_choice, log_dir, playlist_choice):
     try:
-        pl = Playlist(url, user_agent)
+        pl = Playlist(url)
         print(f"\nPlaylist details: ")
         print(f"Playlist name: {pl.title}")
         print(f"Total videos in the playlist: {len(pl.video_urls)}")
 
+        video_urls = pl.video_urls if playlist_choice == 'e' else select_videos(pl)
+
+        if playlist_choice == 's':
+            print("Videos to be downloaded:")
+            for url in video_urls:
+                yt = YouTube(url)
+                print(yt.title)
+
         # Loop through each video in the playlist
-        for index, video_url in enumerate(pl.video_urls, start=1):
+        for index, video_url in enumerate(video_urls, start=1):
             for attempt in range(MAX_RETRIES):
                 try:
                     yt = YouTube(video_url)
                     print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
                     if download_choice == 'v':
-                        download_highest_quality_video(yt, path, log_dir, user_agent)
+                        download_highest_quality_video(yt, path, log_dir)
                     elif download_choice == 'a':
-                        download_audio(yt, path, log_dir, user_agent)
+                        download_audio(yt, path, log_dir)
                     break  # Break out of retry loop if successful
                 except Exception as e:
                     log_download_details(video_url, f"Failed - Attempt {attempt + 1}", log_dir, str(e))
@@ -373,6 +364,15 @@ def download_playlist(url, path, download_choice, log_dir, user_agent):
     except Exception as e:
         print(f"Unexpected error in playlist download: {e}")
 
+# New function to select specific videos from a playlist
+def select_videos(playlist):
+    print("\nSelect the videos you want to download (enter numbers separated by commas):")
+    for index, video in enumerate(playlist.videos, start=1):
+       print(f"{index}. {video.title}")
+
+    selections = input("Enter your selections: ")
+    selected_indices = [int(i) - 1 for i in selections.split(',') if i.isdigit()]
+    return [playlist.video_urls[i] for i in selected_indices if i < len(playlist.video_urls)]
 
 # Main function to handle user input and start the download process
 def main():
@@ -380,7 +380,6 @@ def main():
         log_dir = get_default_directory('log')
         download_dir = get_default_directory('download')
         url = None  # Initialize url to None
-        user_agent = set_custom_user_agent()
         download_mode = input("Enter 'S' for single download or 'B' for batch download: ").lower()
         download_choice = input("Would you like to download Video or Audio? Please enter 'V' for Video or 'A' for Audio: ").lower()
         if download_mode == 'b':
@@ -396,7 +395,7 @@ def main():
 
             path = input("Enter the download directory: ")
             os.makedirs(path, exist_ok=True)
-            batch_download(urls, path, download_choice, log_dir, user_agent)
+            batch_download(urls, path, download_choice, log_dir)
         else:
             url = input("Please enter the full YouTube URL (video or playlist): ")
             is_playlist = 'playlist' in url
@@ -404,20 +403,21 @@ def main():
 
             # Handling downloads for playlists and individual videos or audio
             if is_playlist:
+                playlist_choice = input("Do you want to download the entire playlist or select specific videos? Enter 'E' for entire or 'S' for select: ").lower()
                 playlist_path = input("\nEnter the folder name for the playlist: ")
                 path = os.path.join(download_dir, "/Playlists", playlist_path)
                 os.makedirs(path, exist_ok=True)
-                download_playlist(url, path, download_choice, log_dir, user_agent)  # Pass download_choice here
+                download_playlist(url, path, download_choice, log_dir, playlist_choice)  # Pass download_choice here
             else:
-                yt = YouTube(url, user_agent)
+                yt = YouTube(url)
                 if download_choice == 'v':
                     video_path = os.path.join(download_dir, "/Videos")
                     os.makedirs(video_path, exist_ok=True)
-                    download_highest_quality_video(yt, video_path, log_dir, user_agent)
+                    download_highest_quality_video(yt, video_path, log_dir)
                 elif download_choice == 'a':
                     audio_path = os.path.join(download_dir, "/Music")
                     os.makedirs(audio_path, exist_ok=True)
-                    download_audio(yt, audio_path, log_dir, user_agent)
+                    download_audio(yt, audio_path, log_dir)
     except ValueError as e:
         print(f"Invalid input: {e}")
         log_download_details(url, "Failed", log_dir, str(e))
