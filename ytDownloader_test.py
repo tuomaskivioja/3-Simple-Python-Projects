@@ -1,4 +1,4 @@
-import os
+import os, requests
 import sys
 import shutil
 import subprocess
@@ -10,6 +10,8 @@ import logging
 from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 import argparse
+
+CURRENT_VERSION = "1.0.0"
 
 # Constants for retry mechanism
 MAX_RETRIES = 3
@@ -388,9 +390,21 @@ def parse_arguments():
 
     return parser.parse_args()
 
+def check_for_updates():
+    update_url = "http://example.com/latest_version.txt"  # URL where the latest version number is stored
+    try:
+        response = requests.get(update_url)
+        latest_version = response.text.strip()
+        if latest_version != CURRENT_VERSION:
+            print(f"Update available: Version {latest_version} is available. You are using version {CURRENT_VERSION}.")
+            # You can add more instructions here on how to update
+    except requests.RequestException as e:
+        print(f"Failed to check for updates: {e}")
+
 # Main function to handle user input and start the download process
 def main():
     try:
+        check_for_updates()
         args = parse_arguments()
 
         log_dir = get_default_directory('log')

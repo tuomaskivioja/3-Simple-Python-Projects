@@ -2,11 +2,25 @@ from download_utils import batch_download, download_playlist, download_audio, do
 from file_utils import get_default_directory
 from logging_utils import log_download_details
 from pytube import YouTube
-import os
+import os, requests
+
+CURRENT_VERSION = "1.0.0"
+
+def check_for_updates():
+    update_url = "http://example.com/latest_version.txt"  # URL where the latest version number is stored
+    try:
+        response = requests.get(update_url)
+        latest_version = response.text.strip()
+        if latest_version != CURRENT_VERSION:
+            print(f"Update available: Version {latest_version} is available. You are using version {CURRENT_VERSION}.")
+            # You can add more instructions here on how to update
+    except requests.RequestException as e:
+        print(f"Failed to check for updates: {e}")
 
 # Main function to handle user input and start the download process
 def main():
     try:
+        check_for_updates()
         args = parse_arguments()
 
         log_dir = get_default_directory('log')
