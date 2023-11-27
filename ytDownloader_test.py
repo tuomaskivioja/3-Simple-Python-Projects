@@ -391,7 +391,7 @@ def parse_arguments():
     return parser.parse_args()
 
 def check_for_updates():
-    update_url = "http://example.com/latest_version.txt"  # URL where the latest version number is stored
+    update_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/latest_version.txt"  # URL where the latest version number is stored
     try:
         response = requests.get(update_url)
         latest_version = response.text.strip()

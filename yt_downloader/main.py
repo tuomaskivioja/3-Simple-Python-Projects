@@ -7,7 +7,7 @@ import os, requests
 CURRENT_VERSION = "1.0.0"
 
 def check_for_updates():
-    update_url = "http://example.com/latest_version.txt"  # URL where the latest version number is stored
+    update_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/yt_downloader/latest_version.txt"  # URL where the latest version number is stored
     try:
         response = requests.get(update_url)
         latest_version = response.text.strip()
