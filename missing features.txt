@@ -56,8 +56,6 @@ Automatic Video Categorization: Implement a feature to categorize downloaded vid
 
 Audio Quality Selection: Similar to video quality, allow users to choose the quality of audio files.
 
-Interactive Command-Line Interface: Enhance the CLI experience with interactive prompts and better user feedback.
-
 Analytics and Usage Stats: Provide users with statistics about their download history, such as total data downloaded, most downloaded video types, etc.
 
 API Key Integration: For power users, provide an option to use their own YouTube API key for managing quotas or accessing restricted content.
