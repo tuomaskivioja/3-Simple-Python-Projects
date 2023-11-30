@@ -12,8 +12,11 @@ from mutagen.easyid3 import EasyID3
 import argparse
 import inquirer
 import json
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-CURRENT_VERSION = "1.0.1"
+CURRENT_VERSION = "1.0.2"
 
 analytics_file = "download_analytics.json"
 
@@ -458,6 +461,46 @@ def check_for_updates():
     except requests.RequestException as e:
         print(f"Failed to check for updates: {e}")
 
+def send_feedback_via_email(user_input):
+    # Email Configuration
+    sender_email = "your_email@gmail.com"  # Replace with your email
+    sender_password = "your_password"  # Replace with your email password
+    receiver_email = "support@example.com"  # Replace with the support email
+
+    # Set up the MIME
+    message = MIMEMultipart()
+    message['From'] = sender_email
+    message['To'] = receiver_email
+    message['Subject'] = "New Feedback/Support Request"
+
+    # Email body
+    body = f"User Feedback/Support Request:\n\n{user_input}"
+    message.attach(MIMEText(body, 'plain'))
+
+    # SMTP Server and send email
+    try:
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        text = message.as_string()
+        server.sendmail(sender_email, receiver_email, text)
+        server.quit()
+        print("Feedback/Support request sent successfully.")
+    except Exception as e:
+        print(f"Error sending email: {e}")
+
+def feedback_and_support():
+    print("\nFeedback and Support System")
+    print("Please enter your feedback or describe the issue you're facing. Type 'exit' to return to the main menu.")
+
+    while True:
+        user_input = input("\nEnter your feedback/support request: ")
+
+        if user_input.lower() == 'exit':
+            break
+
+        send_feedback_via_email(user_input)
+
 # Main function to handle user input and start the download process
 def main():
     try:
@@ -471,7 +514,7 @@ def main():
             questions = [
                 inquirer.List('choice',
                               message="Please enter your choice",
-                              choices=['Download Video/Audio', 'View Download Analytics', 'Exit'],
+                              choices=['Download Video/Audio', 'View Download Analytics', 'Feedback and Support', 'Exit'],
                               ),
             ]
             answers = inquirer.prompt(questions)
@@ -511,6 +554,9 @@ def main():
             elif answers['choice'] == 'View Download Analytics':
                 display_analytics()
 
+            elif answers['choice'] == 'Feedback and Support':
+                feedback_and_support()
+                
             elif answers['choice'] == 'Exit':
                 print("Exiting YouTube Downloader CLI.")
                 break  # Exit the loop and the program
