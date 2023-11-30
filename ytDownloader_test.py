@@ -507,10 +507,10 @@ def main():
         check_for_updates()
         log_dir = get_default_directory('log')
         download_dir = get_default_directory('download')
-
+        print("\nWelcome to YouTube Downloader CLI!")
+        print("current version: " + CURRENT_VERSION)
+        
         while True:  # Continuous loop until exit is chosen
-            print("\nWelcome to YouTube Downloader CLI!")
-
             questions = [
                 inquirer.List('choice',
                               message="Please enter your choice",
