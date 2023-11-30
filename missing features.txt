@@ -30,7 +30,7 @@ Multi-threaded Downloads: Implement multi-threading for faster batch downloads, 
 
 Integration with Video Conversion Tools: Besides using FFmpeg for basic operations, integrate the ability to convert videos to different formats post-download.
 
-Customizable Output Directory Structure: Allow users to define the structure of the output directory, for instance, organizing downloads by date, video quality, or channel name.
+- Customizable Output Directory Structure: Allow users to define the structure of the output directory, for instance, organizing downloads by date, video quality, or channel name.
 
 Channel-Based Downloads: Add a feature to download all videos from a specific YouTube channel.
 
