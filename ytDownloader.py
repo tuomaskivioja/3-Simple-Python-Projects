@@ -588,17 +588,17 @@ def main():
             else:
                 print("Invalid choice. Please enter a valid option.")
 
+    except KeyboardInterrupt:
+        if url:
+            log_download_details(url, "Interrupted", log_dir, "User stopped the program")
+        else:
+            print("\nProgram stopped by the user before URL was provided. Exiting now...")
     except ValueError as e:
         print(f"Invalid input: {e}")
         log_download_details(url, "Failed", log_dir, str(e))
     except Exception as e:
         log_download_details(url, "Failed", log_dir, str(e))
         print(f"Unexpected error: {e}")
-    except KeyboardInterrupt:
-        if url:
-            log_download_details(url, "Interrupted", log_dir, "User stopped the program")
-        else:
-            print("\nProgram stopped by the user before URL was provided. Exiting now...")
 
 if __name__ == "__main__":
     main()
