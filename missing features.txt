@@ -12,8 +12,6 @@ Cross-Platform Compatibility: Ensuring the script runs smoothly on different ope
 
 Enhanced Metadata Editing: Expanding the metadata tagging feature to include more fields and customization.
 
-Automated Update Mechanism: Implementing an auto-update feature for the script.
-
 Localization: Adding support for multiple languages in the interface.
 
 Download Scheduling: Enabling users to schedule downloads for later.
