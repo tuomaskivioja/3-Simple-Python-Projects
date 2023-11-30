@@ -16,7 +16,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-CURRENT_VERSION = "1.0.2"
+CURRENT_VERSION = "1.0.3"
 
 analytics_file = "download_analytics.json"
 
