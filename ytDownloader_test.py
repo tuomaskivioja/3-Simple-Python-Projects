@@ -509,7 +509,7 @@ def main():
         download_dir = get_default_directory('download')
         print("\nWelcome to YouTube Downloader CLI!")
         print("current version: " + CURRENT_VERSION)
-        
+
         while True:  # Continuous loop until exit is chosen
             questions = [
                 inquirer.List('choice',
