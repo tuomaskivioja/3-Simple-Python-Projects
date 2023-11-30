@@ -20,8 +20,6 @@ Cloud Storage Integration: Option to directly upload downloaded files to cloud s
 
 Download History with UI: A user-friendly interface to view download history.
 
-User Preferences Storage: Saving user preferences for repeated use.
-
 Proxy Support: Adding an option to use a proxy for downloading.
 
 Dockerization: Packaging the application in a Docker container for easy deployment and execution.
