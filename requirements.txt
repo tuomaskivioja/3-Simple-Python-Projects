@@ -1,0 +1,5 @@
+pytube==15.0.0
+tqdm==4.66.1
+mutagen==1.47.0
+inquirer==3.1.4
+requests==2.31.0
