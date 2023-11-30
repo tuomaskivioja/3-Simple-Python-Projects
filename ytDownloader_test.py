@@ -450,14 +450,38 @@ def parse_arguments():
 
     return parser.parse_args()
 
+def download_and_replace_script(latest_script_url):
+    try:
+        response = requests.get(latest_script_url)
+        if response.status_code == 200:
+            # Assuming your script's filename is 'script.py'
+            with open("ytDownloader_test.py", 'wb') as file:
+                file.write(response.content)
+            print("Script updated successfully. Please restart the script.")
+            exit()
+        else:
+            print("Failed to download the update.")
+    except Exception as e:
+        print(f"Error during update: {e}")
+
 def check_for_updates():
     update_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/latest_version.txt"  # URL where the latest version number is stored
+    script_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/ytDownloader_test.py"  # URL to your script file
     try:
         response = requests.get(update_url)
         latest_version = response.text.strip()
         if latest_version != CURRENT_VERSION:
             print(f"Update available: Version {latest_version} is available. You are using version {CURRENT_VERSION}.")
-            # You can add more instructions here on how to update
+             # Ask the user if they wish to update
+            questions = [
+                inquirer.List('update',
+                              message="Would you like to update to the latest version?",
+                              choices=['Yes', 'No'],
+                              ),
+            ]
+            answer = inquirer.prompt(questions)
+            if answer['update'] == 'Yes':
+                download_and_replace_script(script_url)
     except requests.RequestException as e:
         print(f"Failed to check for updates: {e}")
 
