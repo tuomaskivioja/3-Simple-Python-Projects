@@ -11,12 +11,46 @@ from mutagen.mp3 import MP3
 from mutagen.easyid3 import EasyID3
 import argparse
 import inquirer
+import json
 
 CURRENT_VERSION = "1.0.1"
+
+analytics_file = "download_analytics.json"
 
 # Constants for retry mechanism
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
+
+def update_analytics(download_type, file_size):
+    if not os.path.exists(analytics_file):
+        data = {"total_downloads": 0, "total_data_downloaded": 0, "video_downloads": 0, "audio_downloads": 0}
+    else:
+        with open(analytics_file, 'r') as f:
+            data = json.load(f)
+
+    data["total_downloads"] += 1
+    data["total_data_downloaded"] += file_size
+    if download_type == "video":
+        data["video_downloads"] += 1
+    elif download_type == "audio":
+        data["audio_downloads"] += 1
+
+    with open(analytics_file, 'w') as f:
+        json.dump(data, f, indent=4)
+
+def display_analytics():
+    if not os.path.exists(analytics_file):
+        print("No download data available.")
+        return
+
+    with open(analytics_file, 'r') as f:
+        data = json.load(f)
+
+    print("\nDownload Analytics:")
+    print(f"Total Downloads: {data['total_downloads']}")
+    print(f"Total Data Downloaded: {data['total_data_downloaded']} MB")
+    print(f"Video Downloads: {data['video_downloads']}")
+    print(f"Audio Downloads: {data['audio_downloads']}")
 
 # Function to fetch metadata (placeholder function)
 def fetch_metadata(title):
@@ -169,7 +203,16 @@ def download_highest_quality_video(yt, path, log_dir):
 
             # Correct file extension if necessary and check file integrity
             final_path = correct_file_extension(os.path.join(path, sanitize_filename(yt.title) + '.mp4'), "mp4")
+
             check_file_integrity(final_path)
+
+            try:
+                # Assuming the final file path is stored in 'final_path'
+                file_size_MB = os.path.getsize(final_path) / (1024 * 1024)  # Convert bytes to MB
+                update_analytics("video", file_size_MB)
+            except Exception as e:
+                print(f"Error updating analytics for video: {e}")
+
             # Log successful download
             log_download_details(yt.watch_url, "Success", log_dir)
             break  # Exit loop if download is successful
@@ -317,6 +360,14 @@ def download_audio(yt, path, log_dir):
 
             # Check file integrity
             check_file_integrity(file_path)
+
+            try:
+                # Assuming the final file path is stored in 'file_path'
+                file_size_MB = os.path.getsize(file_path) / (1024 * 1024)  # Convert bytes to MB
+                update_analytics("audio", file_size_MB)
+            except Exception as e:
+                print(f"Error updating analytics for audio: {e}")
+
             # Log successful download
             log_download_details(yt.watch_url, "Success", log_dir)
             break  # Exit loop if download is successful
@@ -411,83 +462,62 @@ def check_for_updates():
 def main():
     try:
         check_for_updates()
-        args = parse_arguments()
-        print("Welcome to YouTube Downloader CLI!")
-
         log_dir = get_default_directory('log')
-        download_dir = args.directory if args.directory else get_default_directory('download')
+        download_dir = get_default_directory('download')
 
-        if args.mode == 'batch':
-            if args.urls:
-                urls = args.urls
-            elif args.file:
-                with open(args.file, 'r') as file:
-                    urls = file.read().splitlines()
-            else:
-                raise ValueError("URLs or a file path is required for batch download")
-            os.makedirs(download_dir, exist_ok=True)
-            batch_download(urls, download_dir, args.type, log_dir)
-        elif args.mode == 'single':
-            if not args.urls:
-                raise ValueError("URL is required for single download")
-            url = args.urls[0]
-            if args.playlist:
-                playlist_path = os.path.join(download_dir, "Playlists")
-                os.makedirs(playlist_path, exist_ok=True)
-                download_playlist(url, playlist_path, args.type, log_dir, args.playlist_choice)
-            else:
-                if args.type == 'video':
-                    video_path = os.path.join(download_dir, "Videos")
-                    os.makedirs(video_path, exist_ok=True)
-                    yt = YouTube(url)
-                    download_highest_quality_video(yt, video_path, log_dir)
-                elif args.type == 'audio':
-                    audio_path = os.path.join(download_dir, "Music")
-                    os.makedirs(audio_path, exist_ok=True)
-                    yt = YouTube(url)
-                    download_audio(yt, audio_path, log_dir)
-        else:
-            log_dir = get_default_directory('log')
-            download_dir = get_default_directory('download')
-            url = None  # Initialize url to None
-            download_mode = interactive_prompt("Select download mode", ["Single", "Batch"])
-            download_choice = interactive_prompt("What do you want to download?", ["Video", "Audio"])
-            if download_mode == 'Batch':
-                batch_mode = interactive_prompt("Select batch mode", ["Enter URLs", "Use File"])
-                if batch_mode == "Enter URLs":
-                    urls = input("Enter video URLs separated by commas: ").split(',')
-                elif batch_mode == "Use File":
-                    file_path = input("Enter the file path containing video URLs: ")
-                    with open(file_path, 'r') as file:
-                        urls = file.read().splitlines()
+        while True:  # Continuous loop until exit is chosen
+            print("\nWelcome to YouTube Downloader CLI!")
+
+            questions = [
+                inquirer.List('choice',
+                              message="Please enter your choice",
+                              choices=['Download Video/Audio', 'View Download Analytics', 'Exit'],
+                              ),
+            ]
+            answers = inquirer.prompt(questions)
+
+            if answers['choice'] == 'Download Video/Audio':
+                download_choice = interactive_prompt("What do you want to download?", ["Video", "Audio"])
+                mode_choice = interactive_prompt("Choose download mode", ["Single", "Batch"])
+
+                if mode_choice == 'Batch':
+                    batch_mode = interactive_prompt("Select batch mode", ["Enter URLs", "Use File"])
+                    if batch_mode == "Enter URLs":
+                        urls = input("Enter video URLs separated by commas: ").split(',')
+                    elif batch_mode == "Use File":
+                        file_path = input("Enter the file path containing video URLs: ")
+                        with open(file_path, 'r') as file:
+                            urls = file.read().splitlines()
+                    batch_download(urls, download_dir, download_choice, log_dir)
                 else:
-                    raise ValueError("Invalid batch mode selected")
+                    url = input("Please enter the full YouTube URL (video or playlist): ")
+                    if 'playlist' in url:
+                        playlist_choice = interactive_prompt("Download entire playlist or select specific videos?", ["Entire", "Select"])
+                        playlist_path = os.path.join(download_dir, "Playlists")
+                        os.makedirs(playlist_path, exist_ok=True)
+                        download_playlist(url, playlist_path, download_choice, log_dir, playlist_choice)
+                    else:
+                        if download_choice == 'Video':
+                            video_path = os.path.join(download_dir, "Videos")
+                            os.makedirs(video_path, exist_ok=True)
+                            yt = YouTube(url)
+                            download_highest_quality_video(yt, video_path, log_dir)
+                        elif download_choice == 'Audio':
+                            audio_path = os.path.join(download_dir, "Music")
+                            os.makedirs(audio_path, exist_ok=True)
+                            yt = YouTube(url)
+                            download_audio(yt, audio_path, log_dir)
 
-                path = input("Enter the download directory: ")
-                os.makedirs(path, exist_ok=True)
-                batch_download(urls, path, download_choice, log_dir)
+            elif answers['choice'] == 'View Download Analytics':
+                display_analytics()
+
+            elif answers['choice'] == 'Exit':
+                print("Exiting YouTube Downloader CLI.")
+                break  # Exit the loop and the program
+
             else:
-                url = input("Please enter the full YouTube URL (video or playlist): ")
-                is_playlist = 'playlist' in url
-                print(f"Default log file directory is '{log_dir}'.")
+                print("Invalid choice. Please enter a valid option.")
 
-                # Handling downloads for playlists and individual videos or audio
-                if is_playlist:
-                    playlist_choice = interactive_prompt("Download entire playlist or select specific videos?", ["Entire", "Select"])
-                    playlist_path = input("\nEnter the folder name for the playlist: ")
-                    path = os.path.join(download_dir, "/Playlists", playlist_path)
-                    os.makedirs(path, exist_ok=True)
-                    download_playlist(url, path, download_choice, log_dir, playlist_choice)  # Pass download_choice here
-                else:
-                    yt = YouTube(url)
-                    if download_choice == 'Video':
-                        video_path = os.path.join(download_dir, "/Videos")
-                        os.makedirs(video_path, exist_ok=True)
-                        download_highest_quality_video(yt, video_path, log_dir)
-                    elif download_choice == 'Audio':
-                        audio_path = os.path.join(download_dir, "/Music")
-                        os.makedirs(audio_path, exist_ok=True)
-                        download_audio(yt, audio_path, log_dir)
     except ValueError as e:
         print(f"Invalid input: {e}")
         log_download_details(url, "Failed", log_dir, str(e))
