@@ -16,7 +16,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-CURRENT_VERSION = "1.0.2"
+CURRENT_VERSION = "1.0.1"
 
 analytics_file = "download_analytics.json"
 
@@ -556,7 +556,7 @@ def main():
 
             elif answers['choice'] == 'Feedback and Support':
                 feedback_and_support()
-                
+
             elif answers['choice'] == 'Exit':
                 print("Exiting YouTube Downloader CLI.")
                 break  # Exit the loop and the program
