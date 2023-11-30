@@ -16,13 +16,25 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-CURRENT_VERSION = "1.0.3"
+CURRENT_VERSION = "1.0.4"
 
 analytics_file = "download_analytics.json"
+Preferences_file = "user_preferences.json"
 
 # Constants for retry mechanism
 MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
+
+def load_preferences():
+    try:
+        with open(Preferences_file, "r") as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return {"download_directory": get_default_directory('download'), "log_directory": get_default_directory('log')}
+
+def save_preferences(preferences):
+    with open(Preferences_file, "w") as file:
+        json.dump(preferences, file, indent=4)
 
 def update_analytics(download_type, file_size):
     if not os.path.exists(analytics_file):
@@ -124,20 +136,14 @@ def log_download_details(url, status, log_dir, error_msg=None):
 
 # Function to handle batch download of videos or audios
 def batch_download(urls, path, download_choice, log_dir):
-    args = parse_arguments()
-    download_dir = args.directory if args.directory else get_default_directory('download')
     for url in urls:
         for attempt in range(MAX_RETRIES):
             try:
                 yt = YouTube(url)
                 if download_choice == 'Video':
-                    video_path = os.path.join(download_dir, "/Videos")
-                    os.makedirs(video_path, exist_ok=True)
-                    download_highest_quality_video(yt, video_path, log_dir)
+                    download_highest_quality_video(yt, path, log_dir)
                 elif download_choice == 'Audio':
-                    audio_path = os.path.join(download_dir, "/Videos")
-                    os.makedirs(audio_path, exist_ok=True)
-                    download_audio(yt, audio_path, log_dir)
+                    download_audio(yt, path, log_dir)
                 break
             except exceptions.PytubeError as e:
                 log_download_details(url, "Failed", log_dir, str(e))
@@ -536,9 +542,12 @@ def main():
     try:
         check_for_updates()
         url = None
-        args = parse_arguments()
-        log_dir = get_default_directory('log')
-        download_dir = args.directory if args.directory else get_default_directory('download')
+        #args = parse_arguments()
+        preferences = load_preferences()
+        #log_dir = get_default_directory('log')
+        log_dir = preferences['log_directory']
+        #download_dir = args.directory if args.directory else get_default_directory('download')
+        download_dir = preferences['download_directory']
 
         print("\nWelcome to YouTube Downloader CLI!")
         print("current version: " + CURRENT_VERSION)
@@ -547,7 +556,7 @@ def main():
             questions = [
                 inquirer.List('choice',
                               message="Please enter your choice",
-                              choices=['Download Video/Audio', 'View Download Analytics', 'Feedback and Support', 'Exit'],
+                              choices=['Download Video/Audio', 'View Download Analytics', 'Update Preferences','Feedback and Support', 'Exit'],
                               ),
             ]
             answers = inquirer.prompt(questions)
@@ -564,23 +573,31 @@ def main():
                         file_path = input("Enter the file path containing video URLs: ")
                         with open(file_path, 'r') as file:
                             urls = file.read().splitlines()
-                    batch_download(urls, download_dir, download_choice, log_dir)
+                    if download_choice == 'Video':
+                        video_path = os.path.join(download_dir, "Videos")
+                        os.makedirs(video_path, exist_ok=True)
+                        batch_path = video_path
+                    elif download_choice == 'Audio':
+                        audio_path = os.path.join(download_dir, "Music")
+                        os.makedirs(audio_path, exist_ok=True)
+                        batch_path = audio_path
+                    batch_download(urls, batch_path, download_choice, log_dir)
                 else:
                     url = input("Please enter the full YouTube URL (video or playlist): ")
                     if 'playlist' in url:
                         playlist_choice = interactive_prompt("Download entire playlist or select specific videos?", ["Entire", "Select"])
                         playlist_path = input("\nEnter the folder name for the playlist: ")
-                        path_playlist = os.path.join(download_dir, "/Playlists", playlist_path)
+                        path_playlist = os.path.join(download_dir, "Playlists", playlist_path)
                         os.makedirs(path_playlist, exist_ok=True)
                         download_playlist(url, path_playlist, download_choice, log_dir, playlist_choice)
                     else:
                         if download_choice == 'Video':
-                            video_path = os.path.join(download_dir, "/Videos")
+                            video_path = os.path.join(download_dir, "Videos")
                             os.makedirs(video_path, exist_ok=True)
                             yt = YouTube(url)
                             download_highest_quality_video(yt, video_path, log_dir)
                         elif download_choice == 'Audio':
-                            audio_path = os.path.join(download_dir, "/Music")
+                            audio_path = os.path.join(download_dir, "Music")
                             os.makedirs(audio_path, exist_ok=True)
                             yt = YouTube(url)
                             download_audio(yt, audio_path, log_dir)
@@ -588,10 +605,23 @@ def main():
             elif answers['choice'] == 'View Download Analytics':
                 display_analytics()
 
+            elif answers['choice'] == 'Update Preferences':
+                new_download_dir = input("Enter new download directory or press Enter to keep current: ")
+                new_log_dir = input("Enter new log directory or press Enter to keep current: ")
+    
+                if new_download_dir:
+                    preferences['download_directory'] = new_download_dir
+                if new_log_dir:
+                    preferences['log_directory'] = new_log_dir
+
+                save_preferences(preferences)
+                print("Preferences updated successfully.")
+
             elif answers['choice'] == 'Feedback and Support':
                 feedback_and_support()
 
             elif answers['choice'] == 'Exit':
+                save_preferences(preferences)
                 print("Exiting YouTube Downloader CLI.")
                 break  # Exit the loop and the program
 
