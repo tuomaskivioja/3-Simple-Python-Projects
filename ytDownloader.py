@@ -124,14 +124,20 @@ def log_download_details(url, status, log_dir, error_msg=None):
 
 # Function to handle batch download of videos or audios
 def batch_download(urls, path, download_choice, log_dir):
+    args = parse_arguments()
+    download_dir = args.directory if args.directory else get_default_directory('download')
     for url in urls:
         for attempt in range(MAX_RETRIES):
             try:
                 yt = YouTube(url)
                 if download_choice == 'Video':
-                    download_highest_quality_video(yt, path, log_dir)
+                    video_path = os.path.join(download_dir, "/Videos")
+                    os.makedirs(video_path, exist_ok=True)
+                    download_highest_quality_video(yt, video_path, log_dir)
                 elif download_choice == 'Audio':
-                    download_audio(yt, path, log_dir)
+                    audio_path = os.path.join(download_dir, "/Videos")
+                    os.makedirs(audio_path, exist_ok=True)
+                    download_audio(yt, audio_path, log_dir)
                 break
             except exceptions.PytubeError as e:
                 log_download_details(url, "Failed", log_dir, str(e))
@@ -408,9 +414,9 @@ def download_playlist(url, path, download_choice, log_dir, playlist_choice):
                 try:
                     yt = YouTube(video_url)
                     print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
-                    if download_choice == 'v':
+                    if download_choice == 'Video':
                         download_highest_quality_video(yt, path, log_dir)
-                    elif download_choice == 'a':
+                    elif download_choice == 'Audio':
                         download_audio(yt, path, log_dir)
                     break  # Break out of retry loop if successful
                 except Exception as e:
@@ -455,7 +461,7 @@ def download_and_replace_script(latest_script_url):
         response = requests.get(latest_script_url)
         if response.status_code == 200:
             # Assuming your script's filename is 'script.py'
-            with open("ytDownloader.py", 'wb') as file:
+            with open("ytDownloader_test.py", 'wb') as file:
                 file.write(response.content)
             print("Script updated successfully. Please restart the script.")
             exit()
@@ -466,7 +472,7 @@ def download_and_replace_script(latest_script_url):
 
 def check_for_updates():
     update_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/latest_version.txt"  # URL where the latest version number is stored
-    script_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/ytDownloader.py"  # URL to your script file
+    script_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/ytDownloader_test.py"  # URL to your script file
     try:
         response = requests.get(update_url)
         latest_version = response.text.strip()
@@ -529,8 +535,11 @@ def feedback_and_support():
 def main():
     try:
         check_for_updates()
+        url = None
+        args = parse_arguments()
         log_dir = get_default_directory('log')
-        download_dir = get_default_directory('download')
+        download_dir = args.directory if args.directory else get_default_directory('download')
+
         print("\nWelcome to YouTube Downloader CLI!")
         print("current version: " + CURRENT_VERSION)
 
@@ -560,17 +569,18 @@ def main():
                     url = input("Please enter the full YouTube URL (video or playlist): ")
                     if 'playlist' in url:
                         playlist_choice = interactive_prompt("Download entire playlist or select specific videos?", ["Entire", "Select"])
-                        playlist_path = os.path.join(download_dir, "Playlists")
-                        os.makedirs(playlist_path, exist_ok=True)
-                        download_playlist(url, playlist_path, download_choice, log_dir, playlist_choice)
+                        playlist_path = input("\nEnter the folder name for the playlist: ")
+                        path_playlist = os.path.join(download_dir, "/Playlists", playlist_path)
+                        os.makedirs(path_playlist, exist_ok=True)
+                        download_playlist(url, path_playlist, download_choice, log_dir, playlist_choice)
                     else:
                         if download_choice == 'Video':
-                            video_path = os.path.join(download_dir, "Videos")
+                            video_path = os.path.join(download_dir, "/Videos")
                             os.makedirs(video_path, exist_ok=True)
                             yt = YouTube(url)
                             download_highest_quality_video(yt, video_path, log_dir)
                         elif download_choice == 'Audio':
-                            audio_path = os.path.join(download_dir, "Music")
+                            audio_path = os.path.join(download_dir, "/Music")
                             os.makedirs(audio_path, exist_ok=True)
                             yt = YouTube(url)
                             download_audio(yt, audio_path, log_dir)
