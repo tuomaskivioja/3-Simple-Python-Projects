@@ -26,78 +26,16 @@ MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
 
 def load_preferences():
-    default_prefs = {
-        "download_directory": get_default_directory('download'),
-        "log_directory": get_default_directory('log'),
-        "dir_structure": "default"
-    }
-    
     try:
         with open(Preferences_file, "r") as file:
-            prefs = json.load(file)
-            # Ensure all preferences exist
-            for key in default_prefs:
-                if key not in prefs:
-                    prefs[key] = default_prefs[key]
-            return prefs
+            return json.load(file)
     except FileNotFoundError:
-        return default_prefs
+        return {"download_directory": get_default_directory('download'), "log_directory": get_default_directory('log')}
 
 def save_preferences(preferences):
-    try:
-        with open(Preferences_file, "w") as file:
-            json.dump(preferences, file, indent=4)
-        print("Preferences saved successfully.")
-    except Exception as e:
-        print(f"Error saving preferences: {e}")
+    with open(Preferences_file, "w") as file:
+        json.dump(preferences, file, indent=4)
 
-def update_preferences(preferences):
-    print("\nUpdating Preferences")
-
-    # Update download directory
-    new_download_dir = input(f"Enter new download directory or press Enter to keep current ({preferences['download_directory']}): ")
-    if new_download_dir:
-        preferences['download_directory'] = new_download_dir
-
-    # Update log directory
-    new_log_dir = input(f"Enter new log directory or press Enter to keep current ({preferences['log_directory']}): ")
-    if new_log_dir:
-        preferences['log_directory'] = new_log_dir
-
-    # Update directory structure
-    dir_structure_questions = [
-        inquirer.List('dir_structure',
-                      message="Choose directory structure for downloads:",
-                      choices=[
-                          ('Default (All in one folder)', 'default'),
-                          ('By Date (Organize by download date)', 'date'),
-                          ('By Quality (Organize by video quality)', 'quality'),
-                          ('By Channel (Organize by YouTube channel name)', 'channel')
-                      ])
-    ]
-
-    dir_structure_answers = inquirer.prompt(dir_structure_questions)
-    preferences["dir_structure"] = dir_structure_answers['dir_structure']
-
-    # Save the updated preferences
-    save_preferences(preferences)
-    print("Preferences updated successfully.")
-
-def get_download_path(preferences, yt, download_type):
-    base_path = preferences["download_directory"]
-    if preferences["dir_structure"] == "date":
-        date_path = yt.publish_date.strftime("%Y-%m-%d")
-        return os.path.join(base_path, date_path, download_type)
-    elif preferences["dir_structure"] == "quality":
-        # This requires fetching video quality, which may vary depending on the script
-        quality_path = "HighQuality"  # Placeholder, replace with actual logic
-        return os.path.join(base_path, quality_path, download_type)
-    elif preferences["dir_structure"] == "channel":
-        channel_path = yt.author  # Assuming 'yt' has an 'author' attribute
-        return os.path.join(base_path, channel_path, download_type)
-    else:
-        return os.path.join(base_path, download_type)
-    
 def update_analytics(download_type, file_size):
     if not os.path.exists(analytics_file):
         data = {"total_downloads": 0, "total_data_downloaded": 0, "video_downloads": 0, "audio_downloads": 0}
@@ -668,7 +606,16 @@ def main():
                 display_analytics()
 
             elif answers['choice'] == 'Update Preferences':
-                update_preferences(preferences)
+                new_download_dir = input("Enter new download directory or press Enter to keep current: ")
+                new_log_dir = input("Enter new log directory or press Enter to keep current: ")
+    
+                if new_download_dir:
+                    preferences['download_directory'] = new_download_dir
+                if new_log_dir:
+                    preferences['log_directory'] = new_log_dir
+
+                save_preferences(preferences)
+                print("Preferences updated successfully.")
 
             elif answers['choice'] == 'Feedback and Support':
                 feedback_and_support()
