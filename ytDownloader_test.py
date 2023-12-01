@@ -36,6 +36,18 @@ def save_preferences(preferences):
     with open(Preferences_file, "w") as file:
         json.dump(preferences, file, indent=4)
 
+def update_preferences(preferences):
+    new_download_dir = input("Enter new download directory or press Enter to keep current: ")
+    new_log_dir = input("Enter new log directory or press Enter to keep current: ")
+    
+    if new_download_dir:
+        preferences['download_directory'] = new_download_dir
+    if new_log_dir:
+        preferences['log_directory'] = new_log_dir
+
+    save_preferences(preferences)
+    print("Preferences updated successfully.") 
+
 def update_analytics(download_type, file_size):
     if not os.path.exists(analytics_file):
         data = {"total_downloads": 0, "total_data_downloaded": 0, "video_downloads": 0, "audio_downloads": 0}
@@ -556,7 +568,7 @@ def main():
             questions = [
                 inquirer.List('choice',
                               message="Please enter your choice",
-                              choices=['Download Video/Audio', 'View Download Analytics', 'Update Preferences','Feedback and Support', 'Exit'],
+                              choices=['Download Video/Audio', 'View Download Analytics', 'Settings', 'Exit'],
                               ),
             ]
             answers = inquirer.prompt(questions)
@@ -605,20 +617,12 @@ def main():
             elif answers['choice'] == 'View Download Analytics':
                 display_analytics()
 
-            elif answers['choice'] == 'Update Preferences':
-                new_download_dir = input("Enter new download directory or press Enter to keep current: ")
-                new_log_dir = input("Enter new log directory or press Enter to keep current: ")
-    
-                if new_download_dir:
-                    preferences['download_directory'] = new_download_dir
-                if new_log_dir:
-                    preferences['log_directory'] = new_log_dir
-
-                save_preferences(preferences)
-                print("Preferences updated successfully.")
-
-            elif answers['choice'] == 'Feedback and Support':
-                feedback_and_support()
+            elif answers['choice'] == 'Settings':
+                settings_choice = interactive_prompt("Select a setting to update", ["Update Preferences", "Feedback and Support", "Back to Main Menu"])
+                if settings_choice == 'Update Preferences':
+                    update_preferences(preferences)
+                elif settings_choice == 'Feedback and Support':
+                    feedback_and_support()
 
             elif answers['choice'] == 'Exit':
                 save_preferences(preferences)
