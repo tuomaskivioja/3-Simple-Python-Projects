@@ -26,8 +26,6 @@ Dockerization: Packaging the application in a Docker container for easy deployme
 
 Advanced Error Handling: Improve error handling to provide more detailed feedback to the user, especially for network issues or video availability.
 
-Multi-threaded Downloads: Implement multi-threading for faster batch downloads, allowing multiple videos or audios to be downloaded simultaneously.
-
 Integration with Video Conversion Tools: Besides using FFmpeg for basic operations, integrate the ability to convert videos to different formats post-download.
 
 - Customizable Output Directory Structure: Allow users to define the structure of the output directory, for instance, organizing downloads by date, video quality, or channel name.

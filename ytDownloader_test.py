@@ -15,8 +15,9 @@ import json
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import threading
 
-CURRENT_VERSION = "1.0.4"
+CURRENT_VERSION = "1.0.5"
 
 analytics_file = "download_analytics.json"
 Preferences_file = "user_preferences.json"
@@ -146,28 +147,44 @@ def log_download_details(url, status, log_dir, error_msg=None):
     except Exception as e:
         print(f"Error logging details: {e}")
 
-# Function to handle batch download of videos or audios
+def threaded_download(yt, path, download_choice, log_dir, max_retries=MAX_RETRIES):
+    """
+    Function to handle download in a separate thread with retry logic.
+    """
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            if download_choice == 'Video':
+                download_highest_quality_video(yt, path, log_dir)
+            elif download_choice == 'Audio':
+                download_audio(yt, path, log_dir)
+            break  # Break out of the loop if download is successful
+        except exceptions.PytubeError as e:
+            print(f"Pytube error during download: {e}")
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+        finally:
+            attempt += 1
+
+        if attempt < max_retries:
+            print(f"Retrying in {RETRY_DELAY} seconds...")
+            time.sleep(RETRY_DELAY)
+        else:
+            print("Maximum retries reached. Moving to next URL or video.")
+
 def batch_download(urls, path, download_choice, log_dir):
+    threads = []
     for url in urls:
-        for attempt in range(MAX_RETRIES):
-            try:
-                yt = YouTube(url)
-                if download_choice == 'Video':
-                    download_highest_quality_video(yt, path, log_dir)
-                elif download_choice == 'Audio':
-                    download_audio(yt, path, log_dir)
-                break
-            except exceptions.PytubeError as e:
-                log_download_details(url, "Failed", log_dir, str(e))
-                print(f"Pytube error during batch download: {e}")
-            except Exception as e:
-                log_download_details(url, "Failed", log_dir, str(e))
-                print(f"Attempt {attempt + 1} failed: {e}")
-                if attempt < MAX_RETRIES - 1:
-                    print(f"Retrying in {RETRY_DELAY} seconds...")
-                    time.sleep(RETRY_DELAY)
-                else:
-                    print("Maximum retries reached. Moving to next URL.")
+        try:
+            yt = YouTube(url)
+            t = threading.Thread(target=threaded_download, args=(yt, path, download_choice, log_dir, MAX_RETRIES))
+            threads.append(t)
+            t.start()
+        except Exception as e:
+            print(f"Error setting up batch download: {e}")
+
+    for thread in threads:
+        thread.join()
 
 # Function to remove invalid characters from filenames
 def sanitize_filename(title):
@@ -414,50 +431,33 @@ def download_audio(yt, path, log_dir):
 def download_playlist(url, path, download_choice, log_dir, playlist_choice):
     try:
         pl = Playlist(url)
-        print(f"\nPlaylist details: ")
-        print(f"Playlist name: {pl.title}")
-        print(f"Total videos in the playlist: {len(pl.video_urls)}")
-
         video_urls = pl.video_urls if playlist_choice == 'Entire' else select_videos(pl)
+        threads = []
+        for video_url in video_urls:
+            try:
+                yt = YouTube(video_url)
+                t = threading.Thread(target=threaded_download, args=(yt, path, download_choice, log_dir, MAX_RETRIES))
+                threads.append(t)
+                t.start()
+            except Exception as e:
+                print(f"Error setting up playlist download: {e}")
 
-        if playlist_choice == 'Select':
-            print("Videos to be downloaded:")
-            for url in video_urls:
-                yt = YouTube(url)
-                print(yt.title)
+        for thread in threads:
+            thread.join()
 
-        # Loop through each video in the playlist
-        for index, video_url in enumerate(video_urls, start=1):
-            for attempt in range(MAX_RETRIES):
-                try:
-                    yt = YouTube(video_url)
-                    print(f"\nDownloading {('audio' if download_choice == 'a' else 'video')} {index} of {len(pl.video_urls)}: {yt.title}")
-                    if download_choice == 'Video':
-                        download_highest_quality_video(yt, path, log_dir)
-                    elif download_choice == 'Audio':
-                        download_audio(yt, path, log_dir)
-                    break  # Break out of retry loop if successful
-                except Exception as e:
-                    log_download_details(video_url, f"Failed - Attempt {attempt + 1}", log_dir, str(e))
-                    if attempt < MAX_RETRIES - 1:
-                        print(f"Attempt {attempt + 1} failed: {e}. Retrying in {RETRY_DELAY} seconds...")
-                        time.sleep(RETRY_DELAY)
-                    else:
-                        print(f"Failed to download video {index} after maximum retries. Moving to next video.")
-
-    except exceptions.PytubeError as e:
-        print(f"An error occurred while downloading the playlist. Details: {e}")
     except Exception as e:
         print(f"Unexpected error in playlist download: {e}")
 
-# New function to select specific videos from a playlist
 def select_videos(playlist):
-    print("\nSelect the videos you want to download (enter numbers separated by commas):")
-    for index, video in enumerate(playlist.videos, start=1):
-       print(f"{index}. {video.title}")
-
-    selections = input("Enter your selections: ")
-    selected_indices = [int(i) - 1 for i in selections.split(',') if i.isdigit()]
+    """
+    Interactive prompt for selecting specific videos from a playlist.
+    """
+    video_choices = [f"{index + 1}. {video.title}" for index, video in enumerate(playlist.videos)]
+    questions = [inquirer.Checkbox('selected_videos',
+                                   message="Select the videos you want to download (use space to select, enter to confirm):",
+                                   choices=video_choices)]
+    answers = inquirer.prompt(questions)
+    selected_indices = [int(choice.split('.')[0]) - 1 for choice in answers['selected_videos']]
     return [playlist.video_urls[i] for i in selected_indices if i < len(playlist.video_urls)]
 
 def parse_arguments():
