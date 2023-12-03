@@ -1,4 +1,5 @@
 import os, requests
+from requests.exceptions import ConnectionError
 import sys
 import shutil
 import subprocess
@@ -17,7 +18,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import threading
 
-CURRENT_VERSION = "1.0.5"
+CURRENT_VERSION = "1.0.6"
 
 analytics_file = "download_analytics.json"
 Preferences_file = "user_preferences.json"
@@ -78,7 +79,7 @@ def display_analytics():
     print(f"Total Downloads: {data['total_downloads']}")
     print(f"Total Data Downloaded: {data['total_data_downloaded']} MB")
     print(f"Video Downloads: {data['video_downloads']}")
-    print(f"Audio Downloads: {data['audio_downloads']}")
+    print(f"Audio Downloads: {data['audio_downloads']}\n")
 
 # Function to fetch metadata (placeholder function)
 def fetch_metadata(title):
@@ -448,6 +449,38 @@ def download_playlist(url, path, download_choice, log_dir, playlist_choice):
     except Exception as e:
         print(f"Unexpected error in playlist download: {e}")
 
+def create_custom_playlist():
+    custom_playlist = []
+    print("\nCustom Playlist Creation")
+    print("Enter the URLs of the playlists or channels from which you want to select videos.")
+
+    while True:
+        add_more = inquirer.prompt([
+            inquirer.Confirm('add_more', message="Would you like to add a Playlist/Channel URL?", default=True),
+        ])
+
+        if add_more['add_more']:
+            url = input("Enter Playlist/Channel URL: ")
+
+        if 'playlist' in url:
+            pl = Playlist(url)
+            playlist_choice = inquirer.prompt([
+                inquirer.List('choice',
+                              message="Do you want to download the entire playlist or select specific videos?",
+                              choices=['Entire Playlist', 'Select Videos'],
+                              ),
+            ])
+
+            if playlist_choice['choice'] == 'Entire Playlist':
+                custom_playlist.extend(pl.video_urls)
+            elif playlist_choice['choice'] == 'Select Videos':
+                selected_videos = select_videos(pl)
+                custom_playlist.extend(selected_videos)
+        else:
+            break
+
+    return custom_playlist
+
 def select_videos(playlist):
     """
     Interactive prompt for selecting specific videos from a playlist.
@@ -488,26 +521,40 @@ def download_and_replace_script(latest_script_url):
     except Exception as e:
         print(f"Error during update: {e}")
 
-def check_for_updates():
+def check_for_updates(retry_count=1, retry_delay=2):
     update_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/latest_version.txt"  # URL where the latest version number is stored
     script_url = "https://raw.githubusercontent.com/tejasholla/YouTube-Downloader/master/ytDownloader_test.py"  # URL to your script file
-    try:
-        response = requests.get(update_url)
-        latest_version = response.text.strip()
-        if latest_version != CURRENT_VERSION:
-            print(f"Update available: Version {latest_version} is available. You are using version {CURRENT_VERSION}.")
-             # Ask the user if they wish to update
-            questions = [
-                inquirer.List('update',
-                              message="Would you like to update to the latest version?",
-                              choices=['Yes', 'No'],
-                              ),
-            ]
-            answer = inquirer.prompt(questions)
-            if answer['update'] == 'Yes':
-                download_and_replace_script(script_url)
-    except requests.RequestException as e:
-        print(f"Failed to check for updates: {e}")
+    
+    attempts = 0
+    while attempts < retry_count:
+        try:
+            response = requests.get(update_url)
+            if response.status_code == 200:
+                latest_version = response.text.strip()
+                if latest_version != CURRENT_VERSION:
+                    print(f"Update available: Version {latest_version} is available. You are using version {CURRENT_VERSION}.")
+                    # Ask the user if they wish to update
+                    questions = [
+                    inquirer.List('update',
+                                message="Would you like to update to the latest version?",
+                                choices=['Yes', 'No'],
+                                ),
+                ]
+                answer = inquirer.prompt(questions)
+                if answer['update'] == 'Yes':
+                    download_and_replace_script(script_url)
+                break  # Break the loop if successful
+            else:
+                print("Failed to download the update.")
+                break
+        except ConnectionError:
+            if attempts < retry_count - 1:
+                time.sleep(retry_delay)
+        except Exception as e:
+            print(f"Unexpected error while checking for updates: {e}")
+            break
+        finally:
+            attempts += 1
 
 def send_feedback_via_email(user_input):
     # Email Configuration
@@ -561,8 +608,7 @@ def main():
         #download_dir = args.directory if args.directory else get_default_directory('download')
         download_dir = preferences['download_directory']
 
-        print("\nWelcome to YouTube Downloader CLI!")
-        print("current version: " + CURRENT_VERSION)
+        print("\nYouTube Downloader [" + CURRENT_VERSION + "]")
 
         while True:  # Continuous loop until exit is chosen
             questions = [
@@ -575,7 +621,7 @@ def main():
 
             if answers['choice'] == 'Download Video/Audio':
                 download_choice = interactive_prompt("What do you want to download?", ["Video", "Audio"])
-                mode_choice = interactive_prompt("Choose download mode", ["Single", "Batch"])
+                mode_choice = interactive_prompt("Choose download mode", ["Single", "Batch", "Custom Playlist"])
 
                 if mode_choice == 'Batch':
                     batch_mode = interactive_prompt("Select batch mode", ["Enter URLs", "Use File"])
@@ -594,6 +640,15 @@ def main():
                         os.makedirs(audio_path, exist_ok=True)
                         batch_path = audio_path
                     batch_download(urls, batch_path, download_choice, log_dir)
+                elif mode_choice == 'Custom Playlist':
+                    playlist_name = input("Enter a name for your custom playlist: ")
+                    custom_playlist_urls = create_custom_playlist()
+                    custom_playlist_path = os.path.join(download_dir, "Playlists", playlist_name)
+                    os.makedirs(custom_playlist_path, exist_ok=True)
+                    if download_choice == 'Video':
+                        batch_download(custom_playlist_urls, custom_playlist_path, "Video", log_dir)
+                    elif download_choice == 'Audio':
+                        batch_download(custom_playlist_urls, custom_playlist_path, "Audio", log_dir)
                 else:
                     url = input("Please enter the full YouTube URL (video or playlist): ")
                     if 'playlist' in url:

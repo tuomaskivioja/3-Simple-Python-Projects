@@ -28,13 +28,11 @@ Advanced Error Handling: Improve error handling to provide more detailed feedbac
 
 Integration with Video Conversion Tools: Besides using FFmpeg for basic operations, integrate the ability to convert videos to different formats post-download.
 
-- Customizable Output Directory Structure: Allow users to define the structure of the output directory, for instance, organizing downloads by date, video quality, or channel name.
+Customizable Output Directory Structure: Allow users to define the structure of the output directory, for instance, organizing downloads by date, video quality, or channel name.
 
 Channel-Based Downloads: Add a feature to download all videos from a specific YouTube channel.
 
 Video to Audio Conversion Option: Provide an option to download a video and automatically convert it to an audio file in a chosen format.
-
-Playlist Customization: Enable users to create custom playlists by selecting videos from different YouTube playlists or channels.
 
 Thumbnail Downloading: Option to download video thumbnails.
 
