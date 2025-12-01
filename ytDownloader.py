@@ -1,5 +1,5 @@
 from pytube import YouTube
-
+#chage this code to a more manual version without using pytube built in functions
 try:
     # Ask the user to input the YouTube URL
     url = input("Enter the YouTube URL: ")
