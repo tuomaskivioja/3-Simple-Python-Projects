@@ -1,5 +1,9 @@
 from pytube import YouTube
 
+def show_project_info():
+    print("YouTube Downloader Project")
+    print("Feature update added through GitHub fork workflow.")
+
 try:
     # Ask the user to input the YouTube URL
     url = input("Enter the YouTube URL: ")
@@ -18,3 +22,5 @@ try:
     print("Download complete.")
 except Exception as e:
     print("An error occurred:", str(e))
+
+
