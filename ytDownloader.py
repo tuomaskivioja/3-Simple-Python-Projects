@@ -18,3 +18,17 @@ try:
     print("Download complete.")
 except Exception as e:
     print("An error occurred:", str(e))
+# Project Information Feature
+
+def project_info():
+    print("\n================================")
+    print("       YOUTUBE DOWNLOADER")
+    print("================================")
+    print("Project Name: 3-Simple-Python-Projects")
+    print("Language: Python")
+    print("Feature: YouTube Video Downloader")
+    print("Developer: Pranay")
+    print("================================")
+
+
+project_info()
