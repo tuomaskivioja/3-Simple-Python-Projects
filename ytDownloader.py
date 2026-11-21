@@ -18,3 +18,4 @@ try:
     print("Download complete.")
 except Exception as e:
     print("An error occurred:", str(e))
+    # Project info feature added
