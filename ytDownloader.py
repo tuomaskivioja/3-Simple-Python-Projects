@@ -1,6 +1,9 @@
 from pytube import YouTube
 
 try:
+    print("Project: YouTube Video Downloader")
+    print("Description: A Python project to download YouTube videos.")
+    print("Feature: Displays project information.")
     # Ask the user to input the YouTube URL
     url = input("Enter the YouTube URL: ")
     
